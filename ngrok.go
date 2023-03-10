@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
+	ngrok_zap "golang.ngrok.com/ngrok/log/zap"
 )
 
 func init() {
@@ -85,6 +86,7 @@ func (n *Ngrok) WrapListener(net.Listener) net.Listener {
 		n.ctx,
 		n.tunnel.NgrokTunnel(),
 		auth_token_option,
+		ngrok.WithLogger(ngrok_zap.NewLogger(n.l)),
 	)
 	if err != nil {
 		panic(err)
