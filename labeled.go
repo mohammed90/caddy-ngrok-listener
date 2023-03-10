@@ -18,6 +18,8 @@ type Labeled struct {
 	ctx context.Context
 
 	opts   []config.LabeledTunnelOption
+
+	// A map of label, value pairs for this tunnel.
 	Labels map[string]string `json:"labels,omitempty"`
 
 	l *zap.Logger
@@ -61,19 +63,17 @@ func (t *Labeled) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			case "labels":
 				for nesting := d.Nesting(); d.NextBlock(nesting); {
 					directive := d.Val()
+					if directive == "}" || directive == "{" {
+						continue
+					}
 					args := d.RemainingArgs()
-					switch directive {
-					case "label":
-						if len(args) != 2 {
-							return d.ArgErr()
-						}
-						if t.Labels == nil {
-							t.Labels = map[string]string{}
-						}
-						t.Labels[args[0]] = args[1]
-					default:
+					if len(args) != 1 {
 						return d.ArgErr()
 					}
+					if t.Labels == nil {
+						t.Labels = map[string]string{}
+					}
+					t.Labels[directive] = args[0]
 				}
 			default:
 				return d.ArgErr()
