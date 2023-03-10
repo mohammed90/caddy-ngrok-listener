@@ -28,7 +28,7 @@ type Ngrok struct {
 	ctx context.Context
 
 	// The user's ngrok authentication token
-	AuthToken string `json:"auth_token,omitempty"`
+	AuthToken string `json:"authtoken,omitempty"`
 
 	// The ngrok tunnel type and configuration; defaults to 'tcp'
 	TunnelRaw json.RawMessage `json:"tunnel,omitempty" caddy:"namespace=caddy.listeners.ngrok.tunnels inline_key=tunnel"`
@@ -77,15 +77,15 @@ func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 
 // WrapListener return an ngrok listener instead the listener passed by Caddy
 func (n *Ngrok) WrapListener(net.Listener) net.Listener {
-	auth_token_option := ngrok.WithAuthtoken(n.AuthToken)
+	authtoken_option := ngrok.WithAuthtoken(n.AuthToken)
 	if n.AuthToken == "" {
-		auth_token_option = ngrok.WithAuthtokenFromEnv()
+		authtoken_option = ngrok.WithAuthtokenFromEnv()
 	}
 
 	ln, err := ngrok.Listen(
 		n.ctx,
 		n.tunnel.NgrokTunnel(),
-		auth_token_option,
+		authtoken_option,
 		ngrok.WithLogger(ngrok_zap.NewLogger(n.l)),
 	)
 	if err != nil {
@@ -104,12 +104,12 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		for d.NextBlock(0) {
 			subdirective := d.Val()
 			switch subdirective {
-			case "auth_token":
-				var auth_token string
-				if !d.Args(&auth_token) {
-					auth_token = ""
+			case "authtoken":
+				var authtoken string
+				if !d.Args(&authtoken) {
+					authtoken = ""
 				}
-				n.AuthToken = auth_token
+				n.AuthToken = authtoken
 			case "tunnel":
 				var tunnelName string
 				if !d.Args(&tunnelName) {
