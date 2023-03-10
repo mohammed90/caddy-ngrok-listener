@@ -45,9 +45,14 @@ func (t *TCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			return d.ArgErr()
 		}
 		for d.NextBlock(0) {
-			switch d.Val() {
+			subdirective := d.Val()
+			switch subdirective {
 			case "address":
-				t.Address = d.Val()
+				var address string
+				if !d.Args(&address) {
+					d.ArgErr()
+				}
+				t.Address = address
 			default:
 				return d.ArgErr()
 			}

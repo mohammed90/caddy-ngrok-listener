@@ -50,12 +50,17 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
 	n.tunnel = tmod.(Tunnel)
-	if n.tunnel == nil {
-		return fmt.Errorf("tunnel is required")
-	}
-
+	
 	if repl, ok := ctx.Value(caddy.ReplacerCtxKey).(*caddy.Replacer); ok {
 		n.AuthToken = repl.ReplaceKnown(n.AuthToken, "")
+	}
+	return nil
+}
+
+// Validate implements caddy.Validator.
+func (n *Ngrok) Validate() error {
+	if n.tunnel == nil {
+		return fmt.Errorf("tunnel is required")
 	}
 	return nil
 }
@@ -71,10 +76,15 @@ func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 
 // WrapListener return an ngrok listener instead the listener passed by Caddy
 func (n *Ngrok) WrapListener(net.Listener) net.Listener {
+	auth_token_option := ngrok.WithAuthtoken(n.AuthToken)
+	if n.AuthToken == "" {
+		auth_token_option = ngrok.WithAuthtokenFromEnv()
+	}
+
 	ln, err := ngrok.Listen(
 		n.ctx,
 		n.tunnel.NgrokTunnel(),
-		ngrok.WithAuthtoken(n.AuthToken),
+		auth_token_option,
 	)
 	if err != nil {
 		panic(err)
@@ -90,12 +100,14 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		}
 
 		for d.NextBlock(0) {
-			switch d.Val() {
+			subdirective := d.Val()
+			switch subdirective {
 			case "auth_token":
-				if !d.NextArg() {
-					return d.ArgErr()
+				var auth_token string
+				if !d.Args(&auth_token) {
+					auth_token = ""
 				}
-				n.AuthToken = d.Val()
+				n.AuthToken = auth_token
 			case "tunnel":
 				var tunnelName string
 				if !d.Args(&tunnelName) {
@@ -120,5 +132,6 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 var _ caddy.Module = (*Ngrok)(nil)
 var _ caddy.Provisioner = (*Ngrok)(nil)
+var _ caddy.Validator = (*Ngrok)(nil)
 var _ caddy.ListenerWrapper = (*Ngrok)(nil)
 var _ caddyfile.Unmarshaler = (*Ngrok)(nil)
