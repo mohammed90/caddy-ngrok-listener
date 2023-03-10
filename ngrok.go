@@ -50,7 +50,7 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
 	n.tunnel = tmod.(Tunnel)
-	
+
 	if repl, ok := ctx.Value(caddy.ReplacerCtxKey).(*caddy.Replacer); ok {
 		n.AuthToken = repl.ReplaceKnown(n.AuthToken, "")
 	}

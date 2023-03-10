@@ -5,8 +5,8 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	"golang.ngrok.com/ngrok/config"
 	"go.uber.org/zap"
+	"golang.ngrok.com/ngrok/config"
 )
 
 func init() {
@@ -17,7 +17,7 @@ func init() {
 type Labeled struct {
 	ctx context.Context
 
-	opts []config.LabeledTunnelOption
+	opts   []config.LabeledTunnelOption
 	Labels map[string]string `json:"labels,omitempty"`
 
 	l *zap.Logger
@@ -37,7 +37,7 @@ func (*Labeled) CaddyModule() caddy.ModuleInfo {
 func (lt *Labeled) Provision(ctx caddy.Context) error {
 	lt.ctx = ctx
 	lt.l = ctx.Logger()
-	
+
 	for label, value := range lt.Labels {
 		lt.opts = append(lt.opts, config.WithLabel(label, value))
 		lt.l.Info("applying label", zap.String("label", label), zap.String("value", value))
@@ -58,25 +58,25 @@ func (t *Labeled) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		}
 		for d.NextBlock(0) {
 			switch d.Val() {
-				case "labels":
-					for nesting := d.Nesting(); d.NextBlock(nesting); {
-						directive := d.Val()
-						args := d.RemainingArgs()
-						switch directive {
-							case "label":
-								if len(args) != 2 {
-									return d.ArgErr()
-								}
-								if t.Labels == nil {
-									t.Labels = map[string]string{}
-								}
-								t.Labels[args[0]] = args[1]
-							default:
-								return d.ArgErr()
+			case "labels":
+				for nesting := d.Nesting(); d.NextBlock(nesting); {
+					directive := d.Val()
+					args := d.RemainingArgs()
+					switch directive {
+					case "label":
+						if len(args) != 2 {
+							return d.ArgErr()
 						}
+						if t.Labels == nil {
+							t.Labels = map[string]string{}
+						}
+						t.Labels[args[0]] = args[1]
+					default:
+						return d.ArgErr()
 					}
-				default:
-					return d.ArgErr()
+				}
+			default:
+				return d.ArgErr()
 
 			}
 		}
