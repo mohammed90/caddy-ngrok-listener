@@ -12,15 +12,15 @@ func init() {
 
 // ngrok TCP tunnel
 type TCP struct {
-	// The TCP address to request for this edge
-	Address string `json:"address,omitempty"`
+	// The remote TCP address to request for this edge
+	RemoteAddr string `json:"remote_address,omitempty"`
 
 	opts []config.TCPEndpointOption
 }
 
 // Provision implements caddy.Provisioner
 func (t *TCP) Provision(caddy.Context) error {
-	t.opts = append(t.opts, config.WithRemoteAddr(t.Address))
+	t.opts = append(t.opts, config.WithRemoteAddr(t.RemoteAddr))
 	return nil
 }
 
@@ -47,12 +47,12 @@ func (t *TCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		for d.NextBlock(0) {
 			subdirective := d.Val()
 			switch subdirective {
-			case "address":
-				var address string
-				if !d.Args(&address) {
+			case "remote_address":
+				var remote_address string
+				if !d.Args(&remote_address) {
 					d.ArgErr()
 				}
-				t.Address = address
+				t.RemoteAddr = remote_address
 			default:
 				return d.ArgErr()
 			}
