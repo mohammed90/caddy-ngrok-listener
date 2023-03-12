@@ -11,3 +11,5 @@
 
 Caddyfile
 caddy
+caddy-build/
+dist
