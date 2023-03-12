@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
+	ngrokZap "golang.ngrok.com/ngrok/log/zap"
 )
 
 func init() {
@@ -24,7 +25,7 @@ type Tunnel interface {
 
 // Ngrok is a `listener_wrapper` whose address is an ngrok-ingress address
 type Ngrok struct {
-	ctx context.Context
+	opts []ngrok.ConnectOption
 
 	// The user's ngrok authentication token
 	AuthToken string `json:"auth_token,omitempty"`
@@ -34,7 +35,8 @@ type Ngrok struct {
 
 	tunnel Tunnel
 
-	l *zap.Logger
+	ctx context.Context
+	l   *zap.Logger
 }
 
 // Provisions the ngrok listener wrapper
@@ -45,6 +47,7 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 	if n.TunnelRaw == nil {
 		n.TunnelRaw = json.RawMessage(`{"tunnel": "tcp"}`)
 	}
+
 	tmod, err := ctx.LoadModule(n, "TunnelRaw")
 	if err != nil {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
@@ -60,6 +63,19 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 	return nil
 }
 
+func (n *Ngrok) ProvisionOpts() error {
+	n.opts = append(n.opts, ngrok.WithLogger(ngrokZap.NewLogger(n.l)))
+
+	if n.AuthToken == "" {
+		n.opts = append(n.opts, ngrok.WithAuthtokenFromEnv())
+	} else {
+		n.opts = append(n.opts, ngrok.WithAuthtoken(n.AuthToken))
+	}
+
+
+	return nil
+}
+
 func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID: "caddy.listeners.ngrok",
@@ -71,15 +87,21 @@ func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 
 // WrapListener return an ngrok listener instead the listener passed by Caddy
 func (n *Ngrok) WrapListener(net.Listener) net.Listener {
+	if err := n.ProvisionOpts(); err != nil {
+		panic(err)
+	}
+
 	ln, err := ngrok.Listen(
 		n.ctx,
 		n.tunnel.NgrokTunnel(),
-		ngrok.WithAuthtoken(n.AuthToken),
+		n.opts...,
 	)
 	if err != nil {
 		panic(err)
 	}
+
 	n.l.Info("ngrok listening", zap.String("address", ln.Addr().String()))
+
 	return ln
 }
 
