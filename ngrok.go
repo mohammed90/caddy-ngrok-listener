@@ -28,7 +28,7 @@ type Ngrok struct {
 	opts []ngrok.ConnectOption
 
 	// The user's ngrok authentication token
-	AuthToken string `json:"auth_token,omitempty"`
+	AuthToken string `json:"authtoken,omitempty"`
 
 	// The ngrok tunnel type and configuration; defaults to 'tcp'
 	TunnelRaw json.RawMessage `json:"tunnel,omitempty" caddy:"namespace=caddy.listeners.ngrok.tunnels inline_key=type"`
