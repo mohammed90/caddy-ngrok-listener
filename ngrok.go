@@ -52,9 +52,12 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 	if err != nil {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
-	n.tunnel = tmod.(Tunnel)
-	if n.tunnel == nil {
-		return fmt.Errorf("tunnel is required")
+
+	var ok bool
+	n.tunnel, ok = tmod.(Tunnel)
+
+	if !ok {
+		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
 
 	if repl, ok := ctx.Value(caddy.ReplacerCtxKey).(*caddy.Replacer); ok {
@@ -72,6 +75,15 @@ func (n *Ngrok) ProvisionOpts() error {
 		n.opts = append(n.opts, ngrok.WithAuthtoken(n.AuthToken))
 	}
 
+
+	return nil
+}
+
+// Validate implements caddy.Validator.
+func (n *Ngrok) Validate() error {
+	if n.tunnel == nil {
+		return fmt.Errorf("tunnel is required")
+	}
 
 	return nil
 }
@@ -140,7 +152,10 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-var _ caddy.Module = (*Ngrok)(nil)
-var _ caddy.Provisioner = (*Ngrok)(nil)
-var _ caddy.ListenerWrapper = (*Ngrok)(nil)
-var _ caddyfile.Unmarshaler = (*Ngrok)(nil)
+var (
+	_ caddy.Module          = (*Ngrok)(nil)
+	_ caddy.Provisioner     = (*Ngrok)(nil)
+	_ caddy.Validator       = (*Ngrok)(nil)
+	_ caddy.ListenerWrapper = (*Ngrok)(nil)
+	_ caddyfile.Unmarshaler = (*Ngrok)(nil)
+)
