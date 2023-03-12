@@ -203,19 +203,9 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return err
 				}
 			case "tunnel":
-				var tunnelName string
-				if !d.Args(&tunnelName) {
-					tunnelName = "tcp"
-				}
-				unm, err := caddyfile.UnmarshalModule(d, "caddy.listeners.ngrok.tunnels."+tunnelName)
-				if err != nil {
+				if err := n.unmarshalTunnel(d); err != nil {
 					return err
 				}
-				tun, ok := unm.(Tunnel)
-				if !ok {
-					return d.Errf("module %s is not an ngrok tunnel; is %T", tunnelName, unm)
-				}
-				n.TunnelRaw = caddyconfig.JSONModuleObject(tun, "type", tunnelName, nil)
 			default:
 				return d.ArgErr()
 			}
@@ -253,6 +243,28 @@ func (n *Ngrok) unmarshalHeartbeatInterval(d *caddyfile.Dispenser) error {
 	}
 
 	n.HeartbeatInterval = heartbeatInterval
+
+	return nil
+}
+
+func (n *Ngrok) unmarshalTunnel(d *caddyfile.Dispenser) error {
+	var tunnelName string
+	if !d.Args(&tunnelName) {
+		tunnelName = "tcp"
+	}
+
+	unm, err := caddyfile.UnmarshalModule(d, "caddy.listeners.ngrok.tunnels."+tunnelName)
+	if err != nil {
+		return err
+	}
+
+	tun, ok := unm.(Tunnel)
+
+	if !ok {
+		return d.Errf("module %s is not an ngrok tunnel; is %T", tunnelName, unm)
+	}
+
+	n.TunnelRaw = caddyconfig.JSONModuleObject(tun, "type", tunnelName, nil)
 
 	return nil
 }
