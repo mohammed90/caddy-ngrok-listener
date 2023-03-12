@@ -30,7 +30,7 @@ type Ngrok struct {
 	AuthToken string `json:"auth_token,omitempty"`
 
 	// The ngrok tunnel type and configuration; defaults to 'tcp'
-	TunnelRaw json.RawMessage `json:"tunnel,omitempty" caddy:"namespace=caddy.listeners.ngrok.tunnels inline_key=tunnel"`
+	TunnelRaw json.RawMessage `json:"tunnel,omitempty" caddy:"namespace=caddy.listeners.ngrok.tunnels inline_key=type"`
 
 	tunnel Tunnel
 
@@ -109,7 +109,7 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				if !ok {
 					return d.Errf("module %s is not an ngrok tunnel; is %T", tunnelName, unm)
 				}
-				n.TunnelRaw = caddyconfig.JSONModuleObject(tun, "tunnel", tunnelName, nil)
+				n.TunnelRaw = caddyconfig.JSONModuleObject(tun, "type", tunnelName, nil)
 			default:
 				return d.ArgErr()
 			}
