@@ -16,7 +16,7 @@ func TestParseLabeled(t *testing.T) {
 	}{
 		{`labeled {
 			metadata test
-		}`, false, Labeled{Metadata: "test"}},
+		}`, false, Labeled{Metadata: "test", Labels: map[string]string{}}},
 		{`labeled {
 			metadata test
 			label test me

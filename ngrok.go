@@ -140,11 +140,7 @@ func (n *Ngrok) doReplace() error {
 	}
 
 	for _, field := range replaceableFields {
-		actual, err := repl.ReplaceOrErr(*field, false, true)
-		if err != nil {
-			return fmt.Errorf("error replacing fields: %v", err)
-		}
-
+		actual := repl.ReplaceKnown(*field, "")
 		*field = actual
 	}
 

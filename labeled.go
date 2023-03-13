@@ -71,15 +71,21 @@ func (t *Labeled) doReplace() error {
 	}
 
 	for _, field := range replaceableFields {
-		actual, err := repl.ReplaceOrErr(*field, false, true)
-		if err != nil {
-			return fmt.Errorf("error replacing fields: %v", err)
-		}
-
+		actual := repl.ReplaceKnown(*field, "")
 		*field = actual
 	}
 
-	// TODO: Labels need to be replaceable
+	replacedLabels := make(map[string]string)
+
+	for labelName, labelValue := range t.Labels {
+		actualLabelName := repl.ReplaceKnown(labelName, "")
+		actualLabelValue := repl.ReplaceKnown(labelValue, "")
+
+		replacedLabels[actualLabelName] = actualLabelValue
+	}
+
+	t.Labels = replacedLabels
+
 	return nil
 }
 
