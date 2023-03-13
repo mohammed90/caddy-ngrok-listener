@@ -76,7 +76,7 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 	n.l = ctx.Logger()
 
 	if n.TunnelRaw == nil {
-		n.TunnelRaw = json.RawMessage(`{"tunnel": "tcp"}`)
+		n.TunnelRaw = json.RawMessage(`{"type": "tcp"}`)
 	}
 
 	tmod, err := ctx.LoadModule(n, "TunnelRaw")
