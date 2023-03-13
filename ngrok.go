@@ -91,9 +91,12 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
 
-	err = n.doReplace()
-	if err != nil {
+	if err = n.doReplace(); err != nil {
 		return fmt.Errorf("loading doing replacements: %v", err)
+	}
+
+	if err = n.provisionOpts(); err != nil {
+		return fmt.Errorf("provisioning ngrok opts: %v", err)
 	}
 
 	return nil
@@ -148,15 +151,6 @@ func (n *Ngrok) doReplace() error {
 	return nil
 }
 
-// Validate implements caddy.Validator.
-func (n *Ngrok) Validate() error {
-	if n.tunnel == nil {
-		return fmt.Errorf("tunnel is required")
-	}
-
-	return nil
-}
-
 func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID: "caddy.listeners.ngrok",
@@ -168,10 +162,6 @@ func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 
 // WrapListener return an ngrok listener instead the listener passed by Caddy
 func (n *Ngrok) WrapListener(net.Listener) net.Listener {
-	if err := n.provisionOpts(); err != nil {
-		panic(err)
-	}
-
 	ln, err := ngrok.Listen(
 		n.ctx,
 		n.tunnel.NgrokTunnel(),
@@ -289,7 +279,6 @@ func (n *Ngrok) unmarshalTunnel(d *caddyfile.Dispenser) error {
 var (
 	_ caddy.Module          = (*Ngrok)(nil)
 	_ caddy.Provisioner     = (*Ngrok)(nil)
-	_ caddy.Validator       = (*Ngrok)(nil)
 	_ caddy.ListenerWrapper = (*Ngrok)(nil)
 	_ caddyfile.Unmarshaler = (*Ngrok)(nil)
 )
