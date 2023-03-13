@@ -1,10 +1,10 @@
 package ngroklistener
 
 import (
-	"time"
 	"encoding/json"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
