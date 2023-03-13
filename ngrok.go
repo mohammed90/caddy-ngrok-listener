@@ -56,13 +56,13 @@ type Ngrok struct {
 	// before assuming the session connection is dead and attempting to reconnect.
 	//
 	// See the [heartbeat_tolerance parameter in the ngrok docs] for additional details.
-	HeartbeatTolerance time.Duration `json:"heartbeatTolerance,omitempty"`
+	HeartbeatTolerance caddy.Duration `json:"heartbeatTolerance,omitempty"`
 
 	// HeartbeatInterval configures how often the session will send heartbeat
 	// messages to the ngrok service to check session liveness.
 	//
 	// See the [heartbeat_interval parameter in the ngrok docs] for additional details.
-	HeartbeatInterval time.Duration `json:"heartbeatInterval,omitempty"`
+	HeartbeatInterval caddy.Duration `json:"heartbeatInterval,omitempty"`
 
 	tunnel Tunnel
 
@@ -124,13 +124,9 @@ func (n *Ngrok) ProvisionOpts() error {
 		n.opts = append(n.opts, ngrok.WithServer(n.Server))
 	}
 
-	if n.HeartbeatInterval != 0 {
-		n.opts = append(n.opts, ngrok.WithHeartbeatInterval(n.HeartbeatInterval))
-	}
+	n.opts = append(n.opts, ngrok.WithHeartbeatInterval(time.Duration(n.HeartbeatInterval)))
 
-	if n.HeartbeatTolerance != 0 {
-		n.opts = append(n.opts, ngrok.WithHeartbeatTolerance(n.HeartbeatTolerance))
-	}
+	n.opts = append(n.opts, ngrok.WithHeartbeatTolerance(time.Duration(n.HeartbeatTolerance)))
 
 	return nil
 }
@@ -251,7 +247,7 @@ func (n *Ngrok) unmarshalHeartbeatTolerance(d *caddyfile.Dispenser) error {
 		return d.Errf("parsing heartbeat_tolerance duration: %v", err)
 	}
 
-	n.HeartbeatTolerance = heartbeatTolerance
+	n.HeartbeatTolerance = caddy.Duration(heartbeatTolerance)
 
 	return nil
 }
@@ -267,7 +263,7 @@ func (n *Ngrok) unmarshalHeartbeatInterval(d *caddyfile.Dispenser) error {
 		return d.Errf("parsing heartbeat_interval duration: %v", err)
 	}
 
-	n.HeartbeatInterval = heartbeatInterval
+	n.HeartbeatInterval = caddy.Duration(heartbeatInterval)
 
 	return nil
 }

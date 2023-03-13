@@ -9,6 +9,7 @@ import (
 
 	// "github.com/caddyserver/caddy/v2"
 
+	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
 
@@ -29,7 +30,7 @@ func TestParseNgrok(t *testing.T) {
 			server test.ngrok.com
 			heartbeat_tolerance 1m
 			heartbeat_interval 5s
-		}`, false, Ngrok{Region: "us", Server: "test", HeartbeatTolerance: 1 * time.Minute, HeartbeatInterval: 5 * time.Second}},
+		}`, false, Ngrok{Region: "us", Server: "test", HeartbeatTolerance: caddy.Duration(1 * time.Minute), HeartbeatInterval: caddy.Duration(5 * time.Second)}},
 		{`ngrok {
 			authtoken test
 			tunnel tcp {
