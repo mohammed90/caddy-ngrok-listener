@@ -95,7 +95,7 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 		n.AuthToken = repl.ReplaceKnown(n.AuthToken, "")
 	}
 
-	err = n.DoReplace()
+	err = n.doReplace()
 	if err != nil {
 		return fmt.Errorf("loading doing replacements: %v", err)
 	}
@@ -103,7 +103,7 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-func (n *Ngrok) ProvisionOpts() error {
+func (n *Ngrok) provisionOpts() error {
 	n.opts = append(n.opts, ngrok.WithLogger(ngrokZap.NewLogger(n.l)))
 
 	if n.AuthToken == "" {
@@ -131,7 +131,7 @@ func (n *Ngrok) ProvisionOpts() error {
 	return nil
 }
 
-func (n *Ngrok) DoReplace() error {
+func (n *Ngrok) doReplace() error {
 	repl := caddy.NewReplacer()
 	replaceableFields := []*string{
 		&n.AuthToken,
@@ -172,7 +172,7 @@ func (*Ngrok) CaddyModule() caddy.ModuleInfo {
 
 // WrapListener return an ngrok listener instead the listener passed by Caddy
 func (n *Ngrok) WrapListener(net.Listener) net.Listener {
-	if err := n.ProvisionOpts(); err != nil {
+	if err := n.provisionOpts(); err != nil {
 		panic(err)
 	}
 
