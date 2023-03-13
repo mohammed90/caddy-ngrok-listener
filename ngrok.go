@@ -91,10 +91,6 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
 
-	if repl, ok := ctx.Value(caddy.ReplacerCtxKey).(*caddy.Replacer); ok {
-		n.AuthToken = repl.ReplaceKnown(n.AuthToken, "")
-	}
-
 	err = n.doReplace()
 	if err != nil {
 		return fmt.Errorf("loading doing replacements: %v", err)
