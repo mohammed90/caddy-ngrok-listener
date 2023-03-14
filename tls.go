@@ -25,10 +25,10 @@ type TLS struct {
 	Metadata string `json:"metadata,omitempty"`
 
 	// Rejects connections that do not match the given CIDRs
-	AllowCIDR []string `json:"allowCidr,omitempty"`
+	AllowCIDR []string `json:"allow_cidr,omitempty"`
 
 	// Rejects connections that match the given CIDRs and allows all other CIDRs.
-	DenyCIDR []string `json:"denyCidr,omitempty"`
+	DenyCIDR []string `json:"deny_cidr,omitempty"`
 
 	l *zap.Logger
 }

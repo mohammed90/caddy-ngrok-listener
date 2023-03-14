@@ -19,10 +19,10 @@ type HTTP struct {
 	opts []config.HTTPEndpointOption
 
 	// Rejects connections that do not match the given CIDRs
-	AllowCIDR []string `json:"allowCidr,omitempty"`
+	AllowCIDR []string `json:"allow_cidr,omitempty"`
 
 	// Rejects connections that match the given CIDRs and allows all other CIDRs.
-	DenyCIDR []string `json:"denyCidr,omitempty"`
+	DenyCIDR []string `json:"deny_cidr,omitempty"`
 
 	// the domain for this edge.
 	Domain string `json:"domain,omitempty"`
@@ -34,16 +34,16 @@ type HTTP struct {
 	Scheme string `json:"scheme,omitempty"`
 
 	// the 5XX response ratio at which the ngrok edge will stop sending requests to this tunnel.
-	CircuitBreaker *float64 `json:"circuitBreaker,omitempty"`
+	CircuitBreaker float64 `json:"circuit_breaker,omitempty"`
 
 	// enables gzip compression.
-	EnableCompression bool `json:"enableCompression,omitempty"`
+	Compression bool `json:"compression,omitempty"`
 
 	// enables the websocket-to-tcp converter.
-	EnableWebsocketTCPConversion bool `json:"enableWebsocketTcpConversion,omitempty"`
+	WebsocketTCPConverter bool `json:"websocket_tcp_converter,omitempty"`
 
 	// A map of basicauth, username and password value pairs for this tunnel.
-	BasicAuth map[string]string `json:"basicauth,omitempty"`
+	BasicAuth map[string]string `json:"basic_auth,omitempty"`
 
 	l *zap.Logger
 }
@@ -90,11 +90,11 @@ func (t *HTTP) provisionOpts() error {
 		t.opts = append(t.opts, config.WithDenyCIDRString(t.DenyCIDR...))
 	}
 
-	if t.CircuitBreaker != nil {
-		t.opts = append(t.opts, config.WithCircuitBreaker(*t.CircuitBreaker))
+	if t.CircuitBreaker != 0 {
+		t.opts = append(t.opts, config.WithCircuitBreaker(t.CircuitBreaker))
 	}
 
-	if t.EnableCompression {
+	if t.Compression {
 		t.opts = append(t.opts, config.WithCompression())
 	}
 
@@ -106,7 +106,7 @@ func (t *HTTP) provisionOpts() error {
 		}
 	}
 
-	if t.EnableWebsocketTCPConversion {
+	if t.WebsocketTCPConverter {
 		t.opts = append(t.opts, config.WithWebsocketTCPConversion())
 	}
 
@@ -200,19 +200,19 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				if err := t.unmarshalCircuitBreaker(d); err != nil {
 					return err
 				}
-			case "enable_compression":
-				if err := t.unmarshalEnableCompression(d); err != nil {
+			case "compression":
+				if err := t.unmarshalCompression(d); err != nil {
 					return err
 				}
 			case "scheme":
 				if !d.AllArgs(&t.Scheme) {
 					return d.ArgErr()
 				}
-			case "enable_websocket_tcp_conversion":
-				if err := t.unmarshalEnableWebsocketTCPConversion(d); err != nil {
+			case "websocket_tcp_converter":
+				if err := t.unmarshalWebsocketTCPConverter(d); err != nil {
 					return err
 				}
-			case "basicauth":
+			case "basic_auth":
 				if err := t.unmarshalBasicAuth(d); err != nil {
 					return err
 				}
@@ -225,30 +225,34 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-func (t *HTTP) unmarshalEnableWebsocketTCPConversion(d *caddyfile.Dispenser) error {
+func (t *HTTP) unmarshalWebsocketTCPConverter(d *caddyfile.Dispenser) error {
 	var value string
 	if !d.Args(&value) { // no arg default is true
-		t.EnableWebsocketTCPConversion = true
+		t.WebsocketTCPConverter = true
+	} else if value == "off" {
+		t.WebsocketTCPConverter = false
 	} else { // arg was given check it
 		var err error
-		t.EnableWebsocketTCPConversion, err = strconv.ParseBool(value)
+		t.WebsocketTCPConverter, err = strconv.ParseBool(value)
 		if err != nil {
-			return d.Errf(`parsing enable_websocket_tcp_conversion value %+v: %w`, value, err)
+			return d.Errf(`parsing websocket_tcp_converter value %+v: %w`, value, err)
 		}
 	}
 
 	return nil
 }
 
-func (t *HTTP) unmarshalEnableCompression(d *caddyfile.Dispenser) error {
+func (t *HTTP) unmarshalCompression(d *caddyfile.Dispenser) error {
 	var value string
 	if !d.Args(&value) { // no arg default is true
-		t.EnableCompression = true
+		t.Compression = true
+	} else if value == "off" {
+		t.Compression = false
 	} else { // arg was given check it
 		var err error
-		t.EnableCompression, err = strconv.ParseBool(value)
+		t.Compression, err = strconv.ParseBool(value)
 		if err != nil {
-			return d.Errf(`parsing enable_compression value %+v: %w`, value, err)
+			return d.Errf(`parsing compression value %+v: %w`, value, err)
 		}
 	}
 
@@ -339,7 +343,7 @@ func (t *HTTP) unmarshalCircuitBreaker(d *caddyfile.Dispenser) error {
 		return d.ArgErr()
 	}
 
-	t.CircuitBreaker = &circuitBreaker
+	t.CircuitBreaker = circuitBreaker
 
 	return nil
 }

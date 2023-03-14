@@ -18,16 +18,16 @@ type TCP struct {
 	opts []config.TCPEndpointOption
 
 	// The remote TCP address to request for this edge
-	RemoteAddr string `json:"remoteAddr,omitempty"`
+	RemoteAddr string `json:"remote_addr,omitempty"`
 
 	// opaque metadata string for this tunnel.
 	Metadata string `json:"metadata,omitempty"`
 
 	// Rejects connections that do not match the given CIDRs
-	AllowCIDR []string `json:"allowCidr,omitempty"`
+	AllowCIDR []string `json:"allow_cidr,omitempty"`
 
 	// Rejects connections that match the given CIDRs and allows all other CIDRs.
-	DenyCIDR []string `json:"denyCidr,omitempty"`
+	DenyCIDR []string `json:"deny_cidr,omitempty"`
 
 	l *zap.Logger
 }

@@ -53,6 +53,26 @@ func TestParseHTTP(t *testing.T) {
 			metadata test
 			deny
 		}`, true, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}}},
+		{`http {
+			metadata test
+			compression
+			websocket_tcp_converter
+		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: true, WebsocketTCPConverter: true}},
+		{`http {
+			metadata test
+			compression true
+			websocket_tcp_converter true
+		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: true, WebsocketTCPConverter: true}},
+		{`http {
+			metadata test
+			compression false
+			websocket_tcp_converter false
+		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: false, WebsocketTCPConverter: false}},
+		{`http {
+			metadata test
+			compression off
+			websocket_tcp_converter off
+		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: false, WebsocketTCPConverter: false}},
 	}
 
 	for i, test := range tests {
@@ -76,6 +96,10 @@ func TestParseHTTP(t *testing.T) {
 				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.AllowCIDR, test.expected.AllowCIDR)
 			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
 				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.DenyCIDR, test.expected.DenyCIDR)
+			} else if test.expected.Compression != tun.Compression {
+				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.Compression, test.expected.Compression)
+			} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
+				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
 			}
 		}
 	}

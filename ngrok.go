@@ -56,13 +56,13 @@ type Ngrok struct {
 	// before assuming the session connection is dead and attempting to reconnect.
 	//
 	// See the [heartbeat_tolerance parameter in the ngrok docs] for additional details.
-	HeartbeatTolerance caddy.Duration `json:"heartbeatTolerance,omitempty"`
+	HeartbeatTolerance caddy.Duration `json:"heartbeat_tolerance,omitempty"`
 
 	// HeartbeatInterval configures how often the session will send heartbeat
 	// messages to the ngrok service to check session liveness.
 	//
 	// See the [heartbeat_interval parameter in the ngrok docs] for additional details.
-	HeartbeatInterval caddy.Duration `json:"heartbeatInterval,omitempty"`
+	HeartbeatInterval caddy.Duration `json:"heartbeat_interval,omitempty"`
 
 	tunnel Tunnel
 
