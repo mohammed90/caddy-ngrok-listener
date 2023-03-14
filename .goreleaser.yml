@@ -11,20 +11,15 @@ builds:
   main: main.go
   dir: ./caddy-build
   binary: caddy
-  # hooks:
-  #   pre:
-  #     - rm -rf caddy-build
-  #     - xcaddy build --with github.com/mohammed90/caddy-ngrok-listener@latest
-  #     - find . -iname 'buildenv*' -exec "mv {} caddy-build;"
   goos:
   - darwin
-  # - linux
-  # - windows
-  # - freebsd
+  - linux
+  - windows
+  - freebsd
   goarch:
   - amd64
-  # - arm
-  # - arm64
+  - arm
+  - arm64
   goarm:
   - "5"
   - "6"
@@ -41,12 +36,12 @@ builds:
   ldflags:
   - -s -w
 
-signs:
-  - cmd: cosign
-    signature: "${artifact}.sig"
-    certificate: '{{ trimsuffix (trimsuffix .Env.artifact ".zip") ".tar.gz" }}.pem'
-    args: ["sign-blob", "--output-signature=${signature}", "--output-certificate", "${certificate}", "${artifact}"]
-    artifacts: all
+# signs:
+#   - cmd: cosign
+#     signature: "${artifact}.sig"
+#     certificate: '{{ trimsuffix (trimsuffix .Env.artifact ".zip") ".tar.gz" }}.pem'
+#     args: ["sign-blob", "--output-signature=${signature}", "--output-certificate", "${certificate}", "${artifact}"]
+#     artifacts: all
 
 sboms:
   - artifacts: binary
