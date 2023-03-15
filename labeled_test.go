@@ -16,7 +16,7 @@ func TestParseLabeled(t *testing.T) {
 		expected  Labeled
 	}{
 		{
-			name: "",
+			name: "default",
 			input: `labeled {
 			}`,
 			shouldErr: false,

@@ -16,66 +16,59 @@ func TestParseTLS(t *testing.T) {
 		expected  TLS
 	}{
 		{
-			name: "",
+			name: "default",
 			input: `tls {
-				metadata test
 			}`,
 			shouldErr: false,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `tls {
-				metadata test
 				allow 1
 			}`,
 			shouldErr: false,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
+			expected:  TLS{AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `tls {
-				metadata test
 				allow 1 2 3
 			}`,
 			shouldErr: false,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
+			expected:  TLS{AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `tls {
-				metadata test
 				allow
 			}`,
 			shouldErr: true,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `tls {
-				metadata test
 				deny 1
 			}`,
 			shouldErr: false,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
 		},
 		{
 			name: "",
 			input: `tls {
-				metadata test
 				deny 1 2 3
 			}`,
 			shouldErr: false,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
 		},
 		{
 			name: "",
 			input: `tls {
-				metadata test
 				deny
 			}`,
 			shouldErr: true,
-			expected:  TLS{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 	}
 

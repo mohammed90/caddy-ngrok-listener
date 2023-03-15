@@ -16,7 +16,7 @@ func TestParseTCP(t *testing.T) {
 		expected  TCP
 	}{
 		{
-			name: "",
+			name: "default",
 			input: `tcp {
 			}`,
 			shouldErr: false,

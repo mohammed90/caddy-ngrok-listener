@@ -20,6 +20,13 @@ func TestParseNgrok(t *testing.T) {
 		expected  Ngrok
 	}{
 		{
+			name: "default",
+			input: `ngrok {
+			}`,
+			shouldErr: false,
+			expected:  Ngrok{},
+		},
+		{
 			name: "set authtoken",
 			input: `ngrok {
 				authtoken test

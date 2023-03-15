@@ -18,7 +18,7 @@ func TestParseHTTP(t *testing.T) {
 		expected  HTTP
 	}{
 		{
-			name: "",
+			name: "default",
 			input: `http {
 			}`,
 			shouldErr: false,
