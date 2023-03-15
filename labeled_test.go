@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseLabeled(t *testing.T) {
+	class := "ParseLabeled"
+
 	tests := []struct {
 		name      string
 		input     string
@@ -90,13 +92,13 @@ func TestParseLabeled(t *testing.T) {
 
 		if test.shouldErr {
 			if err == nil {
-				t.Errorf("Test (%v) %v: Expected error but found nil", i, test.name)
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("Test (%v) %v: Expected no error but found error: %v", i, test.name, err)
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if !reflect.DeepEqual(test.expected.Labels, tun.Labels) {
-				t.Errorf("Test (%v) %v: Created Labeled (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun, test.expected)
+				t.Errorf("Test %v (%v) %v: Created Labeled (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun, test.expected)
 			}
 		}
 	}

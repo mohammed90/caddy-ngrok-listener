@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseTLS(t *testing.T) {
+	class := "ParseTLS"
+
 	tests := []struct {
 		name      string
 		input     string
@@ -32,11 +34,11 @@ func TestParseTLS(t *testing.T) {
 
 		if test.shouldErr {
 			if err == nil {
-				t.Errorf("Test (%v) %v: Expected error but found nil", i, test.name)
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("Test (%v) %v: Expected no error but found error: %v", i, test.name, err)
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			}
 		}
 	}
