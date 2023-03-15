@@ -821,3 +821,84 @@ func TestHTTPOAuth(t *testing.T) {
 	cases.runAll(t)
 
 }
+
+func TestHTTPWebhookVerification(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+
+		{
+			name: "default",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Nil(t, actual.WebhookVerification)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "simple",
+			caddyInput: `http {
+				webhook_verification {
+					provider google
+					secret foo
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.WebhookVerification)
+				require.Equal(t, actual.WebhookVerification.Provider, "google")
+				require.Equal(t, actual.WebhookVerification.Secret, "foo")
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithWebhookVerification("google", "foo"),
+			),
+		},
+		{
+			name: "provision-err",
+			caddyInput: `http {
+				webhook_verification {
+					secret foo
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.WebhookVerification)
+				require.Empty(t, actual.WebhookVerification.Provider)
+				require.Equal(t, actual.WebhookVerification.Secret, "foo")
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "provision-err",
+			caddyInput: `http {
+				webhook_verification {
+					provider google
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.WebhookVerification)
+				require.Equal(t, actual.WebhookVerification.Provider, "google")
+				require.Empty(t, actual.WebhookVerification.Secret)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "parse-err",
+			caddyInput: `http {
+				webhook_verification {
+					foo
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "parse-err extra arg",
+			caddyInput: `http {
+				webhook_verification arg1 {
+					provider google
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
