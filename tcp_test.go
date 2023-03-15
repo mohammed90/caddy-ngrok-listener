@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseTCP(t *testing.T) {
+	class := "ParseTCP"
+
 	tests := []struct {
 		name      string
 		input     string
@@ -30,54 +32,6 @@ func TestParseTCP(t *testing.T) {
 			shouldErr: false,
 			expected:  TCP{RemoteAddr: "0.tcp.ngrok.io:1234", AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
-		{
-			name: "",
-			input: `tcp {
-				allow 1
-			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `tcp {
-				allow 1 2 3
-			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `tcp {
-				allow
-			}`,
-			shouldErr: true,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `tcp {
-				deny 1
-			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
-		},
-		{
-			name: "",
-			input: `tcp {
-				deny 1 2 3
-			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
-		},
-		{
-			name: "",
-			input: `tcp {
-				deny
-			}`,
-			shouldErr: true,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
-		},
 	}
 
 	for i, test := range tests {
@@ -88,15 +42,13 @@ func TestParseTCP(t *testing.T) {
 
 		if test.shouldErr {
 			if err == nil {
-				t.Errorf("Test (%v) %v: Expected error but found nil", i, test.name)
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("Test (%v) %v: Expected no error but found error: %v", i, test.name, err)
-			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
-			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if test.expected.RemoteAddr != tun.RemoteAddr {
+				t.Errorf("Test %v (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.RemoteAddr, test.expected.RemoteAddr)
 			}
 		}
 	}
@@ -167,6 +119,123 @@ func TestTCPMetadata(t *testing.T) {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if test.expected.Metadata != tun.Metadata {
 				t.Errorf("Test %v (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
+			}
+		}
+	}
+}
+
+func TestTCPCIDRRestrictions(t *testing.T) {
+	class := "TCPCIDRRestrictions"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  TCP
+	}{
+		{
+			name: "absent",
+			input: `tcp {
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
+			name: "allow",
+			input: `tcp {
+				allow 127.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny",
+			input: `tcp {
+				deny 127.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8"}},
+		},
+		{
+			name: "allow multi",
+			input: `tcp {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "allow multi inline",
+			input: `tcp {
+				allow 127.0.0.0/8 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny multi",
+			input: `tcp {
+				deny 127.0.0.0/8
+				deny 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+		},
+		{
+			name: "deny multi inline",
+			input: `tcp {
+				deny 127.0.0.0/8 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+		},
+		{
+			name: "allow and deny multi",
+			input: `tcp {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+				deny 192.0.0.0/8
+				deny 172.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{"192.0.0.0/8", "172.0.0.0/8"}},
+		},
+		{
+			name: "allow-no-args",
+			input: `tcp {
+				allow
+			}`,
+			shouldErr: true,
+			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny-no-args",
+			input: `tcp {
+				deny
+			}`,
+			shouldErr: true,
+			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := TCP{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
+				t.Errorf("Test (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
+			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
+				t.Errorf("Test (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
 			}
 		}
 	}

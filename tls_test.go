@@ -22,54 +22,6 @@ func TestParseTLS(t *testing.T) {
 			shouldErr: false,
 			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
-		{
-			name: "",
-			input: `tls {
-				allow 1
-			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `tls {
-				allow 1 2 3
-			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `tls {
-				allow
-			}`,
-			shouldErr: true,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `tls {
-				deny 1
-			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
-		},
-		{
-			name: "",
-			input: `tls {
-				deny 1 2 3
-			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
-		},
-		{
-			name: "",
-			input: `tls {
-				deny
-			}`,
-			shouldErr: true,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
-		},
 	}
 
 	for i, test := range tests {
@@ -85,10 +37,6 @@ func TestParseTLS(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("Test (%v) %v: Expected no error but found error: %v", i, test.name, err)
-			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
-			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
 			}
 		}
 	}
@@ -221,6 +169,123 @@ func TestTLSMetadata(t *testing.T) {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if test.expected.Metadata != tun.Metadata {
 				t.Errorf("Test %v (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
+			}
+		}
+	}
+}
+
+func TestTLSCIDRRestrictions(t *testing.T) {
+	class := "TLSCIDRRestrictions"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  TLS
+	}{
+		{
+			name: "absent",
+			input: `tls {
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
+			name: "allow",
+			input: `tls {
+				allow 127.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny",
+			input: `tls {
+				deny 127.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8"}},
+		},
+		{
+			name: "allow multi",
+			input: `tls {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "allow multi inline",
+			input: `tls {
+				allow 127.0.0.0/8 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny multi",
+			input: `tls {
+				deny 127.0.0.0/8
+				deny 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+		},
+		{
+			name: "deny multi inline",
+			input: `tls {
+				deny 127.0.0.0/8 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+		},
+		{
+			name: "allow and deny multi",
+			input: `tls {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+				deny 192.0.0.0/8
+				deny 172.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{"192.0.0.0/8", "172.0.0.0/8"}},
+		},
+		{
+			name: "allow-no-args",
+			input: `tls {
+				allow
+			}`,
+			shouldErr: true,
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny-no-args",
+			input: `tls {
+				deny
+			}`,
+			shouldErr: true,
+			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := TLS{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
+				t.Errorf("Test (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
+			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
+				t.Errorf("Test (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
 			}
 		}
 	}

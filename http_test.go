@@ -24,54 +24,6 @@ func TestParseHTTP(t *testing.T) {
 			shouldErr: false,
 			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
-		{
-			name: "",
-			input: `http {
-				allow 1
-			}`,
-			shouldErr: false,
-			expected:  HTTP{AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `http {
-				allow 1 2 3
-			}`,
-			shouldErr: false,
-			expected:  HTTP{AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `http {
-				allow
-			}`,
-			shouldErr: true,
-			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
-		},
-		{
-			name: "",
-			input: `http {
-				deny 1
-			}`,
-			shouldErr: false,
-			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
-		},
-		{
-			name: "",
-			input: `http {
-				deny 1 2 3
-			}`,
-			shouldErr: false,
-			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
-		},
-		{
-			name: "",
-			input: `http {
-				deny
-			}`,
-			shouldErr: true,
-			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
-		},
 	}
 
 	for i, test := range tests {
@@ -87,10 +39,6 @@ func TestParseHTTP(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
-			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
 			}
 		}
 	}
@@ -540,6 +488,123 @@ func TestHTTPScheme(t *testing.T) {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if test.expected.Scheme != tun.Scheme {
 				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Scheme, test.expected.Scheme)
+			}
+		}
+	}
+}
+
+func TestHTTPCIDRRestrictions(t *testing.T) {
+	class := "HTTPCIDRRestrictions"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  HTTP
+	}{
+		{
+			name: "absent",
+			input: `http {
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
+			name: "allow",
+			input: `http {
+				allow 127.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{"127.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny",
+			input: `http {
+				deny 127.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8"}},
+		},
+		{
+			name: "allow multi",
+			input: `http {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "allow multi inline",
+			input: `http {
+				allow 127.0.0.0/8 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny multi",
+			input: `http {
+				deny 127.0.0.0/8
+				deny 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+		},
+		{
+			name: "deny multi inline",
+			input: `http {
+				deny 127.0.0.0/8 10.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+		},
+		{
+			name: "allow and deny multi",
+			input: `http {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+				deny 192.0.0.0/8
+				deny 172.0.0.0/8
+			}`,
+			shouldErr: false,
+			expected:  HTTP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{"192.0.0.0/8", "172.0.0.0/8"}},
+		},
+		{
+			name: "allow-no-args",
+			input: `http {
+				allow
+			}`,
+			shouldErr: true,
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
+			name: "deny-no-args",
+			input: `http {
+				deny
+			}`,
+			shouldErr: true,
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := HTTP{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
+				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
+			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
+				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
 			}
 		}
 	}
