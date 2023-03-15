@@ -51,6 +51,10 @@ type HTTP struct {
 
 	WebhookVerification *webhookVerification `json:"webhook_verification,omitempty"`
 
+	RequestHeader *httpHeaders `json:"request_header,omitempty"`
+
+	ResponseHeader *httpHeaders `json:"header,omitempty"`
+
 	l *zap.Logger
 }
 
@@ -158,6 +162,22 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		t.opts = append(t.opts, t.WebhookVerification.WebhookVerificationOption)
 	}
 
+	if t.RequestHeader != nil {
+		requestHeaderOpts, err := t.RequestHeader.provisionRequestHeaders()
+		if err != nil {
+			return fmt.Errorf("provisioning request_header: %v", err)
+		}
+		t.opts = append(t.opts, requestHeaderOpts...)
+	}
+
+	if t.ResponseHeader != nil {
+		responseHeaderOpts, err := t.ResponseHeader.provisionResponseHeaders()
+		if err != nil {
+			return fmt.Errorf("provisioning header: %v", err)
+		}
+		t.opts = append(t.opts, responseHeaderOpts...)
+	}
+
 	return nil
 }
 
@@ -257,6 +277,14 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 			case "webhook_verification":
 				if err := t.unmarshalWebhookVerification(d); err != nil {
+					return err
+				}
+			case "request_header":
+				if err := t.unmarshalRequestHeader(d); err != nil {
+					return err
+				}
+			case "header":
+				if err := t.unmarshalResponseHeader(d); err != nil {
 					return err
 				}
 			default:
@@ -425,6 +453,30 @@ func (t *HTTP) unmarshalWebhookVerification(d *caddyfile.Dispenser) error {
 	}
 
 	t.WebhookVerification = &webhookVerification
+
+	return nil
+}
+
+func (t *HTTP) unmarshalRequestHeader(d *caddyfile.Dispenser) error {
+	requestHeader := httpHeaders{}
+	err := requestHeader.unmarshalHeaders(d)
+	if err != nil {
+		return d.Errf(`parsing request_header %w`, err)
+	}
+
+	t.RequestHeader = &requestHeader
+
+	return nil
+}
+
+func (t *HTTP) unmarshalResponseHeader(d *caddyfile.Dispenser) error {
+	responseHeader := httpHeaders{}
+	err := responseHeader.unmarshalHeaders(d)
+	if err != nil {
+		return d.Errf(`parsing header %w`, err)
+	}
+
+	t.ResponseHeader = &responseHeader
 
 	return nil
 }
