@@ -106,46 +106,6 @@ func TestParseHTTP(t *testing.T) {
 			shouldErr: true,
 			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
-		{
-			name: "",
-			input: `http {
-				metadata test
-				compression
-				websocket_tcp_converter
-			}`,
-			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: true, WebsocketTCPConverter: true},
-		},
-		{
-			name: "",
-			input: `http {
-				metadata test
-				compression true
-				websocket_tcp_converter true
-			}`,
-			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: true, WebsocketTCPConverter: true},
-		},
-		{
-			name: "",
-			input: `http {
-				metadata test
-				compression false
-				websocket_tcp_converter false
-			}`,
-			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: false, WebsocketTCPConverter: false},
-		},
-		{
-			name: "",
-			input: `http {
-				metadata test
-				compression off
-				websocket_tcp_converter off
-			}`,
-			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: false, WebsocketTCPConverter: false},
-		},
 	}
 
 	for i, test := range tests {
@@ -169,10 +129,6 @@ func TestParseHTTP(t *testing.T) {
 				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
 			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
 				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
-			} else if test.expected.Compression != tun.Compression {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Compression, test.expected.Compression)
-			} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
 			}
 		}
 	}
@@ -341,6 +297,14 @@ func TestHTTPCompression(t *testing.T) {
 			shouldErr: false,
 			expected:  HTTP{Compression: true},
 		},
+		{
+			name: "compressed-no-arg",
+			input: `http {
+				compression
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Compression: true},
+		},
 	}
 
 	for i, test := range tests {
@@ -363,7 +327,7 @@ func TestHTTPCompression(t *testing.T) {
 	}
 }
 
-func TestHTTPWebsocketTCPConversionn(t *testing.T) {
+func TestHTTPWebsocketTCPConversion(t *testing.T) {
 	class := "HTTPWebsocketTCPConversion"
 
 	tests := []struct {
@@ -397,6 +361,14 @@ func TestHTTPWebsocketTCPConversionn(t *testing.T) {
 		},
 		{
 			name: "converted-true",
+			input: `http {
+				websocket_tcp_converter true
+			}`,
+			shouldErr: false,
+			expected:  HTTP{WebsocketTCPConverter: true},
+		},
+		{
+			name: "converted-no-arg",
 			input: `http {
 				websocket_tcp_converter true
 			}`,
