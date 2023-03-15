@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseHTTP(t *testing.T) {
+	class := "ParseHTTP"
+
 	tests := []struct {
 		name      string
 		input     string
@@ -154,23 +156,100 @@ func TestParseHTTP(t *testing.T) {
 
 		if test.shouldErr {
 			if err == nil {
-				t.Errorf("Test (%v) %v: Expected error but found nil", i, test.name)
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("Test (%v) %v: Expected no error but found error: %v", i, test.name, err)
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if test.expected.Metadata != tun.Metadata {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.Metadata, test.expected.Metadata)
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
 			} else if test.expected.Domain != tun.Domain {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.Domain, test.expected.Domain)
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Domain, test.expected.Domain)
 			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
 			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
 			} else if test.expected.Compression != tun.Compression {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.Compression, test.expected.Compression)
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Compression, test.expected.Compression)
 			} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
+			}
+		}
+	}
+}
+
+func TestHTTPBasicAuth(t *testing.T) {
+	class := "HTTPBasicAuth"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  HTTP
+	}{
+		{
+			name: "empty",
+			input: `http {
+			}`,
+			shouldErr: false,
+			expected:  HTTP{BasicAuth: map[string]string{}},
+		},
+		{
+			name: "single-inline",
+			input: `http {
+				basic_auth foo barbarbar
+			}`,
+			shouldErr: false,
+			expected:  HTTP{BasicAuth: map[string]string{"foo": "barbarbar"}},
+		},
+		{
+			name: "single-block",
+			input: `http {
+				basic_auth {
+					foo barbarbar
+				}
+			}`,
+			shouldErr: false,
+			expected:  HTTP{BasicAuth: map[string]string{"foo": "barbarbar"}},
+		},
+		{
+			name: "multiple",
+			input: `http {
+				basic_auth foo barbarbar
+				basic_auth spam eggsandcheese
+				basic_auth {
+					bar bazbazbaz
+					bam bambinos
+				}
+			}`,
+			shouldErr: false,
+			expected:  HTTP{BasicAuth: map[string]string{"bam": "bambinos", "bar": "bazbazbaz", "foo": "barbarbar", "spam": "eggsandcheese"}},
+		},
+		{
+			name: "password-too-short",
+			input: `http {
+				basic_auth foo bar
+			}`,
+			shouldErr: true,
+			expected:  HTTP{BasicAuth: map[string]string{}},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := HTTP{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if !reflect.DeepEqual(test.expected.BasicAuth, tun.BasicAuth) {
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.BasicAuth, test.expected.BasicAuth)
 			}
 		}
 	}
