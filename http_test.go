@@ -362,3 +362,65 @@ func TestHTTPCompression(t *testing.T) {
 		}
 	}
 }
+
+func TestHTTPWebsocketTCPConversionn(t *testing.T) {
+	class := "HTTPWebsocketTCPConversion"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  HTTP
+	}{
+		{
+			name: "absent",
+			input: `http {
+			}`,
+			shouldErr: false,
+			expected:  HTTP{WebsocketTCPConverter: false},
+		},
+		{
+			name: "converted-off",
+			input: `http {
+				websocket_tcp_converter off
+			}`,
+			shouldErr: false,
+			expected:  HTTP{WebsocketTCPConverter: false},
+		},
+		{
+			name: "converted-false",
+			input: `http {
+				websocket_tcp_converter false
+			}`,
+			shouldErr: false,
+			expected:  HTTP{WebsocketTCPConverter: false},
+		},
+		{
+			name: "converted-true",
+			input: `http {
+				websocket_tcp_converter true
+			}`,
+			shouldErr: false,
+			expected:  HTTP{WebsocketTCPConverter: true},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := HTTP{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
+			}
+		}
+	}
+}
