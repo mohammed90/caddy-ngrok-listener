@@ -23,6 +23,14 @@ func TestParseTCP(t *testing.T) {
 			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 		{
+			name: "remote addr",
+			input: `tcp {
+				remote_addr 0.tcp.ngrok.io:1234
+			}`,
+			shouldErr: false,
+			expected:  TCP{RemoteAddr: "0.tcp.ngrok.io:1234", AllowCIDR: []string{}, DenyCIDR: []string{}},
+		},
+		{
 			name: "",
 			input: `tcp {
 				allow 1
