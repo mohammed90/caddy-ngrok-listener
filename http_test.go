@@ -490,3 +490,57 @@ func TestHTTPMetadata(t *testing.T) {
 		}
 	}
 }
+
+func TestHTTPScheme(t *testing.T) {
+	class := "HTTPScheme"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  HTTP
+	}{
+		{
+			name: "default",
+			input: `http {
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Scheme: ""},
+		},
+		{
+			name: "set https",
+			input: `http {
+				scheme https
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Scheme: "https"},
+		},
+		{
+			name: "set http",
+			input: `http {
+				scheme http
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Scheme: "http"},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := HTTP{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if test.expected.Scheme != tun.Scheme {
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Scheme, test.expected.Scheme)
+			}
+		}
+	}
+}
