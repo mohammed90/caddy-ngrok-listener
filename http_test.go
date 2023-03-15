@@ -758,3 +758,66 @@ func TestHTTPOIDC(t *testing.T) {
 	cases.runAll(t)
 
 }
+
+func TestHTTPOAuth(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+
+		{
+			name: "default",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Nil(t, actual.OAuth)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "simple",
+			caddyInput: `http {
+				oauth {
+					provider google
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.OAuth)
+				require.Equal(t, actual.OAuth.Provider, "google")
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithOAuth("google"),
+			),
+		},
+		{
+			name: "parse-err",
+			caddyInput: `http {
+				oauth {
+					foo
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "parse-err extra arg",
+			caddyInput: `http {
+				oauth arg1 {
+					provider google
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "provision-err",
+			caddyInput: `http {
+				oauth {
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.OAuth)
+				require.Empty(t, actual.OAuth.Provider)
+			},
+			expectProvisionErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
