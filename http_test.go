@@ -686,3 +686,75 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 	cases.runAll(t)
 
 }
+
+func TestHTTPOIDC(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+
+		{
+			name: "default",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Nil(t, actual.OIDC)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "simple",
+			caddyInput: `http {
+				oidc {
+					issuer_url https://google.com
+					client_id foo
+					client_secret bar
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.OIDC)
+				require.Equal(t, actual.OIDC.IssuerURL, "https://google.com")
+				require.Equal(t, actual.OIDC.ClientID, "foo")
+				require.Equal(t, actual.OIDC.ClientSecret, "bar")
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithOIDC("https://google.com", "foo", "bar"),
+			),
+		},
+		{
+			name: "parse-err",
+			caddyInput: `http {
+				oidc {
+					foo
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "parse-err extra arg",
+			caddyInput: `http {
+				oidc arg1 {
+					issuer_url https://google.com
+					client_id foo
+					client_secret bar
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "provision-err",
+			caddyInput: `http {
+				oidc {
+					issuer_url https://google.com
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual.OIDC)
+				require.Equal(t, actual.OIDC.IssuerURL, "https://google.com")
+				require.Empty(t, actual.OIDC.ClientID)
+				require.Empty(t, actual.OIDC.ClientSecret)
+			},
+			expectProvisionErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
