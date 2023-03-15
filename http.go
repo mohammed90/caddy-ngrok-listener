@@ -150,6 +150,14 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		t.opts = append(t.opts, t.WebhookVerification.opt)
 	}
 
+	if t.WebhookVerification != nil {
+		err := t.WebhookVerification.Provision(ctx)
+		if err != nil {
+			return fmt.Errorf("provisioning webhook_verification: %v", err)
+		}
+		t.opts = append(t.opts, t.WebhookVerification.WebhookVerificationOption)
+	}
+
 	return nil
 }
 
