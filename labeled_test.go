@@ -25,62 +25,61 @@ func TestParseLabeled(t *testing.T) {
 			expected:  Labeled{Labels: map[string]string{}},
 		},
 		{
-			name: "",
+			name: "simple-inline",
 			input: `labeled {
-				label test me
+				label foo bar
 			}`,
 			shouldErr: false,
-			expected:  Labeled{Labels: map[string]string{"test": "me"}},
+			expected:  Labeled{Labels: map[string]string{"foo": "bar"}},
 		},
 		{
-			name: "",
-			input: `labeled {
-				label test me
-				label test2 metoo
-			}`,
-			shouldErr: false,
-			expected:  Labeled{Labels: map[string]string{"test": "me", "test2": "metoo"}},
-		},
-		{
-			name: "",
+			name: "simple-block",
 			input: `labeled {
 				label {
-					blocks aswell
+					foo bar
 				}
 			}`,
 			shouldErr: false,
-			expected:  Labeled{Labels: map[string]string{"blocks": "aswell"}},
+			expected:  Labeled{Labels: map[string]string{"foo": "bar"}},
 		},
 		{
-			name: "",
+			name: "mulitple-inline",
+			input: `labeled {
+				label foo bar
+				label spam eggs
+			}`,
+			shouldErr: false,
+			expected:  Labeled{Labels: map[string]string{"foo": "bar", "spam": "eggs"}},
+		},
+		{
+			name: "mulitple-block",
 			input: `labeled {
 				label {
-					test me
-					test2 metoo
+					foo bar
+					spam eggs
 				}
 			}`,
 			shouldErr: false,
-			expected:  Labeled{Labels: map[string]string{"test": "me", "test2": "metoo"}},
+			expected:  Labeled{Labels: map[string]string{"foo": "bar", "spam": "eggs"}},
 		},
 		{
-			name: "",
+			name: "mulitple-mixed",
 			input: `labeled {
+				label foo bar
 				label {
-					test me
-					test2 metoo
+					spam eggs
 				}
-				label inline works
 			}`,
 			shouldErr: false,
-			expected:  Labeled{Labels: map[string]string{"test": "me", "test2": "metoo", "inline": "works"}},
+			expected:  Labeled{Labels: map[string]string{"foo": "bar", "spam": "eggs"}},
 		},
 		{
-			name: "",
+			name: "label-too-many-args",
 			input: `labeled {
-				label inline works toomanyargs
+				label foo bar toomanyargs
 			}`,
 			shouldErr: true,
-			expected:  Labeled{Labels: map[string]string{"inline": "works"}},
+			expected:  Labeled{Labels: map[string]string{}},
 		},
 	}
 
