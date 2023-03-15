@@ -92,8 +92,6 @@ func TestParseTLS(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("Test (%v) %v: Expected no error but found error: %v", i, test.name, err)
-			} else if test.expected.Metadata != tun.Metadata {
-				t.Errorf("Test (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.Metadata, test.expected.Metadata)
 			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
 				t.Errorf("Test (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
 			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
@@ -160,6 +158,76 @@ func TestTLSDomain(t *testing.T) {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if test.expected.Domain != tun.Domain {
 				t.Errorf("Test %v (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Domain, test.expected.Domain)
+			}
+		}
+	}
+}
+
+func TestTLSMetadata(t *testing.T) {
+	class := "TLSMetadata"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  TLS
+	}{
+		{
+			name: "absent",
+			input: `tls {
+			}`,
+			shouldErr: false,
+			expected:  TLS{Metadata: ""},
+		},
+		{
+			name: "with metadata",
+			input: `tls {
+				metadata test
+			}`,
+			shouldErr: false,
+			expected:  TLS{Metadata: "test"},
+		},
+		{
+			name: "metadata-single-arg-quotes",
+			input: `tls {
+				metadata "Hello, World!"
+			}`,
+			shouldErr: false,
+			expected:  TLS{Metadata: "Hello, World!"},
+		},
+		{
+			name: "metadata-no-args",
+			input: `tls {
+				metadata
+			}`,
+			shouldErr: true,
+			expected:  TLS{Metadata: ""},
+		},
+		{
+			name: "metadata-too-many-args",
+			input: `tls {
+				metadata test test2
+			}`,
+			shouldErr: true,
+			expected:  TLS{Metadata: ""},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := TLS{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if test.expected.Metadata != tun.Metadata {
+				t.Errorf("Test %v (%v) %v: Created TLS (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
 			}
 		}
 	}

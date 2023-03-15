@@ -20,64 +20,57 @@ func TestParseHTTP(t *testing.T) {
 		{
 			name: "",
 			input: `http {
-				metadata test
 			}`,
 			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `http {
-				metadata test
 				allow 1
 			}`,
 			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
+			expected:  HTTP{AllowCIDR: []string{"1"}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `http {
-				metadata test
 				allow 1 2 3
 			}`,
 			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
+			expected:  HTTP{AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `http {
-				metadata test
 				allow
 			}`,
 			shouldErr: true,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 		{
 			name: "",
 			input: `http {
-				metadata test
 				deny 1
 			}`,
 			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"1"}},
 		},
 		{
 			name: "",
 			input: `http {
-				metadata test
 				deny 1 2 3
 			}`,
 			shouldErr: false,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}},
 		},
 		{
 			name: "",
 			input: `http {
-				metadata test
 				deny
 			}`,
 			shouldErr: true,
-			expected:  HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expected:  HTTP{AllowCIDR: []string{}, DenyCIDR: []string{}},
 		},
 	}
 
@@ -94,8 +87,6 @@ func TestParseHTTP(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Metadata != tun.Metadata {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
 			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
 				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
 			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
@@ -425,6 +416,76 @@ func TestHTTPDomain(t *testing.T) {
 				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
 			} else if test.expected.Domain != tun.Domain {
 				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Domain, test.expected.Domain)
+			}
+		}
+	}
+}
+
+func TestHTTPMetadata(t *testing.T) {
+	class := "HTTPMetadata"
+
+	tests := []struct {
+		name      string
+		input     string
+		shouldErr bool
+		expected  HTTP
+	}{
+		{
+			name: "absent",
+			input: `http {
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Metadata: ""},
+		},
+		{
+			name: "with metadata",
+			input: `http {
+				metadata test
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Metadata: "test"},
+		},
+		{
+			name: "metadata-single-arg-quotes",
+			input: `http {
+				metadata "Hello, World!"
+			}`,
+			shouldErr: false,
+			expected:  HTTP{Metadata: "Hello, World!"},
+		},
+		{
+			name: "metadata-no-args",
+			input: `http {
+				metadata
+			}`,
+			shouldErr: true,
+			expected:  HTTP{Metadata: ""},
+		},
+		{
+			name: "metadata-too-many-args",
+			input: `http {
+				metadata test test2
+			}`,
+			shouldErr: true,
+			expected:  HTTP{Metadata: ""},
+		},
+	}
+
+	for i, test := range tests {
+		d := caddyfile.NewTestDispenser(test.input)
+		tun := HTTP{}
+		err := tun.UnmarshalCaddyfile(d)
+		tun.Provision(caddy.Context{})
+
+		if test.shouldErr {
+			if err == nil {
+				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
+			} else if test.expected.Metadata != tun.Metadata {
+				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
 			}
 		}
 	}
