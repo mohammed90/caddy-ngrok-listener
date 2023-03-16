@@ -131,22 +131,22 @@ func (t *HTTP) doReplace() error {
 		*field = actual
 	}
 
-	replacedAllowCIDR := make([]string, len(t.AllowCIDR))
+	var replacedAllowCIDR []string
 
-	for index, cidr := range t.AllowCIDR {
+	for _, cidr := range t.AllowCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedAllowCIDR[index] = actual
+		replacedAllowCIDR = append(replacedAllowCIDR, actual)
 	}
 
 	t.AllowCIDR = replacedAllowCIDR
 
-	replacedDenyCIDR := make([]string, len(t.DenyCIDR))
+	var replacedDenyCIDR []string // nil slice
 
-	for index, cidr := range t.DenyCIDR {
+	for _, cidr := range t.DenyCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedDenyCIDR[index] = actual
+		replacedDenyCIDR = append(replacedDenyCIDR, actual)
 	}
 
 	t.DenyCIDR = replacedDenyCIDR

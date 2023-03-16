@@ -3,224 +3,219 @@ package ngroklistener
 import (
 	"testing"
 
-	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/stretchr/testify/require"
+	"golang.ngrok.com/ngrok/config"
 )
 
 func TestParseTCP(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TCP
-	}{
+	cases := genericTestCases[*TCP]{
 		{
 			name: "default",
-			input: `tcp {
+			caddyInput: `tcp {
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.NotNil(t, actual)
+			},
+			expectedOpts: config.TCPEndpoint(),
 		},
 		{
 			name: "remote addr",
-			input: `tcp {
+			caddyInput: `tcp {
 				remote_addr 0.tcp.ngrok.io:1234
 			}`,
-			shouldErr: false,
-			expected:  TCP{RemoteAddr: "0.tcp.ngrok.io:1234", AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Equal(t, actual.RemoteAddr, "0.tcp.ngrok.io:1234")
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithRemoteAddr("0.tcp.ngrok.io:1234"),
+			),
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TCP{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, test.expected.RemoteAddr, tun.RemoteAddr)
-			}
-		})
-	}
 }
 
 func TestTCPMetadata(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TCP
-	}{
+	cases := genericTestCases[*TCP]{
 		{
 			name: "absent",
-			input: `tcp {
+			caddyInput: `tcp {
 			}`,
-			shouldErr: false,
-			expected:  TCP{Metadata: ""},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Empty(t, actual.Metadata)
+			},
+			expectedOpts: config.TCPEndpoint(),
 		},
 		{
 			name: "with metadata",
-			input: `tcp {
+			caddyInput: `tcp {
 				metadata test
 			}`,
-			shouldErr: false,
-			expected:  TCP{Metadata: "test"},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Equal(t, actual.Metadata, "test")
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithMetadata("test"),
+			),
 		},
 		{
 			name: "metadata-single-arg-quotes",
-			input: `tcp {
+			caddyInput: `tcp {
 				metadata "Hello, World!"
 			}`,
-			shouldErr: false,
-			expected:  TCP{Metadata: "Hello, World!"},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Equal(t, actual.Metadata, "Hello, World!")
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithMetadata("Hello, World!"),
+			),
 		},
 		{
 			name: "metadata-no-args",
-			input: `tcp {
+			caddyInput: `tcp {
 				metadata
 			}`,
-			shouldErr: true,
-			expected:  TCP{Metadata: ""},
+			expectUnmarshalErr: true,
 		},
 		{
 			name: "metadata-too-many-args",
-			input: `tcp {
+			caddyInput: `tcp {
 				metadata test test2
 			}`,
-			shouldErr: true,
-			expected:  TCP{Metadata: ""},
+			expectUnmarshalErr: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TCP{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, test.expected.Metadata, tun.Metadata)
-			}
-		})
-	}
 }
 
 func TestTCPCIDRRestrictions(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TCP
-	}{
+	cases := genericTestCases[*TCP]{
 		{
 			name: "absent",
-			input: `tcp {
+			caddyInput: `tcp {
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TCPEndpoint(),
 		},
 		{
 			name: "allow",
-			input: `tcp {
+			caddyInput: `tcp {
 				allow 127.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8"}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8"),
+			),
 		},
 		{
 			name: "deny",
-			input: `tcp {
+			caddyInput: `tcp {
 				deny 127.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8"})
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow multi",
-			input: `tcp {
+			caddyInput: `tcp {
 				allow 127.0.0.0/8
 				allow 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow multi inline",
-			input: `tcp {
+			caddyInput: `tcp {
 				allow 127.0.0.0/8 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "deny multi",
-			input: `tcp {
+			caddyInput: `tcp {
 				deny 127.0.0.0/8
 				deny 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "deny multi inline",
-			input: `tcp {
+			caddyInput: `tcp {
 				deny 127.0.0.0/8 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow and deny multi",
-			input: `tcp {
+			caddyInput: `tcp {
 				allow 127.0.0.0/8
 				allow 10.0.0.0/8
 				deny 192.0.0.0/8
 				deny 172.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TCP{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{"192.0.0.0/8", "172.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TCP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"192.0.0.0/8", "172.0.0.0/8"})
+			},
+			expectedOpts: config.TCPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+				config.WithDenyCIDRString("192.0.0.0/8", "172.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow-no-args",
-			input: `tcp {
+			caddyInput: `tcp {
 				allow
 			}`,
-			shouldErr: true,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectUnmarshalErr: true,
 		},
 		{
 			name: "deny-no-args",
-			input: `tcp {
+			caddyInput: `tcp {
 				deny
 			}`,
-			shouldErr: true,
-			expected:  TCP{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectUnmarshalErr: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TCP{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.ElementsMatch(t, test.expected.AllowCIDR, tun.AllowCIDR)
-				require.ElementsMatch(t, test.expected.DenyCIDR, tun.DenyCIDR)
-			}
-		})
-	}
 }

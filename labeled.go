@@ -48,6 +48,10 @@ func (t *Labeled) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("provisioning labeled tunnel opts: %v", err)
 	}
 
+	if t.Labels == nil || len(t.Labels) == 0 {
+		return fmt.Errorf("a label is required for labeled tunnels")
+	}
+
 	return nil
 }
 
@@ -85,15 +89,6 @@ func (t *Labeled) doReplace() error {
 	}
 
 	t.Labels = replacedLabels
-
-	return nil
-}
-
-// Validate implements caddy.Validator.
-func (t *Labeled) Validate() error {
-	if t.Labels == nil || len(t.Labels) == 0 {
-		return fmt.Errorf("a label is required for labeled tunnels")
-	}
 
 	return nil
 }
@@ -168,6 +163,5 @@ var (
 	_ caddy.Module          = (*Labeled)(nil)
 	_ Tunnel                = (*Labeled)(nil)
 	_ caddy.Provisioner     = (*Labeled)(nil)
-	_ caddy.Validator       = (*Labeled)(nil)
 	_ caddyfile.Unmarshaler = (*Labeled)(nil)
 )

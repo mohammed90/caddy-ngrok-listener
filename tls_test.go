@@ -3,272 +3,250 @@ package ngroklistener
 import (
 	"testing"
 
-	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/stretchr/testify/require"
+	"golang.ngrok.com/ngrok/config"
 )
 
 func TestParseTLS(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TLS
-	}{
+	cases := genericTestCases[*TLS]{
 		{
 			name: "default",
-			input: `tls {
+			caddyInput: `tls {
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.NotNil(t, actual)
+			},
+			expectedOpts: config.TLSEndpoint(),
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TLS{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-			}
-		})
-	}
 }
 
 func TestTLSDomain(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TLS
-	}{
+	cases := genericTestCases[*TLS]{
 		{
 			name: "absent",
-			input: `tls {
+			caddyInput: `tls {
 			}`,
-			shouldErr: false,
-			expected:  TLS{Domain: ""},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.Domain)
+			},
+			expectedOpts: config.TLSEndpoint(),
 		},
 		{
 			name: "with domain",
-			input: `tls {
+			caddyInput: `tls {
 				domain foo.ngrok.io
 			}`,
-			shouldErr: false,
-			expected:  TLS{Domain: "foo.ngrok.io"},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, actual.Domain, "foo.ngrok.io")
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithDomain("foo.ngrok.io"),
+			),
 		},
 		{
 			name: "domain-no-args",
-			input: `tls {
+			caddyInput: `tls {
 				domain
 			}`,
-			shouldErr: true,
-			expected:  TLS{Domain: ""},
+			expectUnmarshalErr: true,
 		},
 		{
 			name: "domain-too-many-args",
-			input: `tls {
+			caddyInput: `tls {
 				domain foo.ngrok.io foo.ngrok.io
 			}`,
-			shouldErr: true,
-			expected:  TLS{Domain: ""},
+			expectUnmarshalErr: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TLS{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, test.expected.Domain, tun.Domain)
-			}
-		})
-	}
 }
 
 func TestTLSMetadata(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TLS
-	}{
+	cases := genericTestCases[*TLS]{
 		{
 			name: "absent",
-			input: `tls {
+			caddyInput: `tls {
 			}`,
-			shouldErr: false,
-			expected:  TLS{Metadata: ""},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.Metadata)
+			},
+			expectedOpts: config.TLSEndpoint(),
 		},
 		{
 			name: "with metadata",
-			input: `tls {
+			caddyInput: `tls {
 				metadata test
 			}`,
-			shouldErr: false,
-			expected:  TLS{Metadata: "test"},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, actual.Metadata, "test")
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithMetadata("test"),
+			),
 		},
 		{
 			name: "metadata-single-arg-quotes",
-			input: `tls {
+			caddyInput: `tls {
 				metadata "Hello, World!"
 			}`,
-			shouldErr: false,
-			expected:  TLS{Metadata: "Hello, World!"},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, actual.Metadata, "Hello, World!")
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithMetadata("Hello, World!"),
+			),
 		},
 		{
 			name: "metadata-no-args",
-			input: `tls {
+			caddyInput: `tls {
 				metadata
 			}`,
-			shouldErr: true,
-			expected:  TLS{Metadata: ""},
+			expectUnmarshalErr: true,
 		},
 		{
 			name: "metadata-too-many-args",
-			input: `tls {
+			caddyInput: `tls {
 				metadata test test2
 			}`,
-			shouldErr: true,
-			expected:  TLS{Metadata: ""},
+			expectUnmarshalErr: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TLS{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, test.expected.Metadata, tun.Metadata)
-			}
-		})
-	}
 }
 
 func TestTLSCIDRRestrictions(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  TLS
-	}{
+	cases := genericTestCases[*TLS]{
 		{
 			name: "absent",
-			input: `tls {
+			caddyInput: `tls {
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.AllowCIDR)
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TLSEndpoint(),
 		},
 		{
 			name: "allow",
-			input: `tls {
+			caddyInput: `tls {
 				allow 127.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8"}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8"),
+			),
 		},
 		{
 			name: "deny",
-			input: `tls {
+			caddyInput: `tls {
 				deny 127.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8"})
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow multi",
-			input: `tls {
+			caddyInput: `tls {
 				allow 127.0.0.0/8
 				allow 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow multi inline",
-			input: `tls {
+			caddyInput: `tls {
 				allow 127.0.0.0/8 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "deny multi",
-			input: `tls {
+			caddyInput: `tls {
 				deny 127.0.0.0/8
 				deny 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "deny multi inline",
-			input: `tls {
+			caddyInput: `tls {
 				deny 127.0.0.0/8 10.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow and deny multi",
-			input: `tls {
+			caddyInput: `tls {
 				allow 127.0.0.0/8
 				allow 10.0.0.0/8
 				deny 192.0.0.0/8
 				deny 172.0.0.0/8
 			}`,
-			shouldErr: false,
-			expected:  TLS{AllowCIDR: []string{"127.0.0.0/8", "10.0.0.0/8"}, DenyCIDR: []string{"192.0.0.0/8", "172.0.0.0/8"}},
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"192.0.0.0/8", "172.0.0.0/8"})
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+				config.WithDenyCIDRString("192.0.0.0/8", "172.0.0.0/8"),
+			),
 		},
 		{
 			name: "allow-no-args",
-			input: `tls {
+			caddyInput: `tls {
 				allow
 			}`,
-			shouldErr: true,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectUnmarshalErr: true,
 		},
 		{
 			name: "deny-no-args",
-			input: `tls {
+			caddyInput: `tls {
 				deny
 			}`,
-			shouldErr: true,
-			expected:  TLS{AllowCIDR: []string{}, DenyCIDR: []string{}},
+			expectUnmarshalErr: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			tun := TLS{}
-			err := tun.UnmarshalCaddyfile(d)
-			tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.ElementsMatch(t, test.expected.AllowCIDR, tun.AllowCIDR)
-				require.ElementsMatch(t, test.expected.DenyCIDR, tun.DenyCIDR)
-			}
-		})
-	}
 }
