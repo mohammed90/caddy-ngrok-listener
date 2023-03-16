@@ -9,8 +9,6 @@ import (
 )
 
 func TestParseHTTP(t *testing.T) {
-	class := "ParseHTTP"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -26,27 +24,27 @@ func TestParseHTTP(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPBasicAuth(t *testing.T) {
-	class := "HTTPBasicAuth"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -101,29 +99,29 @@ func TestHTTPBasicAuth(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if !reflect.DeepEqual(test.expected.BasicAuth, tun.BasicAuth) {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.BasicAuth, test.expected.BasicAuth)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if !reflect.DeepEqual(test.expected.BasicAuth, tun.BasicAuth) {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.BasicAuth, test.expected.BasicAuth)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPCircuitBreaker(t *testing.T) {
-	class := "HTTPCircuitBreaker"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -147,29 +145,29 @@ func TestHTTPCircuitBreaker(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.CircuitBreaker != tun.CircuitBreaker {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.CircuitBreaker, test.expected.CircuitBreaker)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.CircuitBreaker != tun.CircuitBreaker {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.CircuitBreaker, test.expected.CircuitBreaker)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPCompression(t *testing.T) {
-	class := "HTTPCompression"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -217,29 +215,29 @@ func TestHTTPCompression(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.Compression != tun.Compression {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Compression, test.expected.Compression)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Compression != tun.Compression {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Compression, test.expected.Compression)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPWebsocketTCPConversion(t *testing.T) {
-	class := "HTTPWebsocketTCPConversion"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -287,29 +285,29 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPDomain(t *testing.T) {
-	class := "HTTPDomain"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -349,29 +347,29 @@ func TestHTTPDomain(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.Domain != tun.Domain {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Domain, test.expected.Domain)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Domain != tun.Domain {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Domain, test.expected.Domain)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPMetadata(t *testing.T) {
-	class := "HTTPMetadata"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -419,29 +417,29 @@ func TestHTTPMetadata(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.Metadata != tun.Metadata {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Metadata, test.expected.Metadata)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Metadata != tun.Metadata {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPScheme(t *testing.T) {
-	class := "HTTPScheme"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -473,29 +471,29 @@ func TestHTTPScheme(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.Scheme != tun.Scheme {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Scheme, test.expected.Scheme)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Scheme != tun.Scheme {
-				t.Errorf("Test %v (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Scheme, test.expected.Scheme)
-			}
-		}
+		})
 	}
 }
 
 func TestHTTPCIDRRestrictions(t *testing.T) {
-	class := "HTTPCIDRRestrictions"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -588,24 +586,26 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := HTTP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.AllowCIDR, test.expected.AllowCIDR)
+				} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
+					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.DenyCIDR, test.expected.DenyCIDR)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
-			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test (%v) %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
-			}
-		}
+		})
 	}
 }

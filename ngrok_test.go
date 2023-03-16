@@ -11,8 +11,6 @@ import (
 )
 
 func TestParseNgrok(t *testing.T) {
-	class := "ParseNgrok"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -89,30 +87,30 @@ func TestParseNgrok(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		n := Ngrok{}
-		err := n.UnmarshalCaddyfile(d)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			n := Ngrok{}
+			err := n.UnmarshalCaddyfile(d)
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.AuthToken != n.AuthToken {
+					t.Errorf("Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", n.AuthToken, test.expected.AuthToken)
+				} else if !reflect.DeepEqual(test.expected.TunnelRaw, n.TunnelRaw) {
+					t.Errorf("Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", string(n.TunnelRaw), string(test.expected.TunnelRaw))
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.AuthToken != n.AuthToken {
-				t.Errorf("Test %v (%v) %v: Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, n.AuthToken, test.expected.AuthToken)
-			} else if !reflect.DeepEqual(test.expected.TunnelRaw, n.TunnelRaw) {
-				t.Errorf("Test %v (%v) %v: Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, string(n.TunnelRaw), string(test.expected.TunnelRaw))
-			}
-		}
+		})
 	}
 }
 
 func TestNgrokMetadata(t *testing.T) {
-	class := "NgrokMetadata"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -160,21 +158,23 @@ func TestNgrokMetadata(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		n := Ngrok{}
-		err := n.UnmarshalCaddyfile(d)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			n := Ngrok{}
+			err := n.UnmarshalCaddyfile(d)
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.Metadata != n.Metadata {
+					t.Errorf("Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", n.Metadata, test.expected.Metadata)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Metadata != n.Metadata {
-				t.Errorf("Test %v (%v) %v: Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, n.Metadata, test.expected.Metadata)
-			}
-		}
+		})
 	}
 }

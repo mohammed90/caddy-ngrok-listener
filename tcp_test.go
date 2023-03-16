@@ -9,8 +9,6 @@ import (
 )
 
 func TestParseTCP(t *testing.T) {
-	class := "ParseTCP"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -34,29 +32,29 @@ func TestParseTCP(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := TCP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := TCP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.RemoteAddr != tun.RemoteAddr {
+					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.RemoteAddr, test.expected.RemoteAddr)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.RemoteAddr != tun.RemoteAddr {
-				t.Errorf("Test %v (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.RemoteAddr, test.expected.RemoteAddr)
-			}
-		}
+		})
 	}
 }
 
 func TestTCPMetadata(t *testing.T) {
-	class := "TCPMetadata"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -104,29 +102,29 @@ func TestTCPMetadata(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := TCP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := TCP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if test.expected.Metadata != tun.Metadata {
+					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.Metadata, test.expected.Metadata)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if test.expected.Metadata != tun.Metadata {
-				t.Errorf("Test %v (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", class, i, test.name, tun.Metadata, test.expected.Metadata)
-			}
-		}
+		})
 	}
 }
 
 func TestTCPCIDRRestrictions(t *testing.T) {
-	class := "TCPCIDRRestrictions"
-
 	tests := []struct {
 		name      string
 		input     string
@@ -219,24 +217,26 @@ func TestTCPCIDRRestrictions(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := TCP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := caddyfile.NewTestDispenser(test.input)
+			tun := TCP{}
+			err := tun.UnmarshalCaddyfile(d)
+			tun.Provision(caddy.Context{})
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v (%v) %v: Expected error but found nil", class, i, test.name)
+			if test.shouldErr {
+				if err == nil {
+					t.Errorf("Expected error but found nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error but found error: %v", err)
+				} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
+					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.AllowCIDR, test.expected.AllowCIDR)
+				} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
+					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.DenyCIDR, test.expected.DenyCIDR)
+				}
 			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v (%v) %v: Expected no error but found error: %v", class, i, test.name, err)
-			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.AllowCIDR, test.expected.AllowCIDR)
-			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test (%v) %v: Created TCP (\n%#v\n) does not match expected (\n%#v\n)", i, test.name, tun.DenyCIDR, test.expected.DenyCIDR)
-			}
-		}
+		})
 	}
 }
