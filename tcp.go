@@ -77,25 +77,29 @@ func (t *TCP) doReplace() error {
 		*field = actual
 	}
 
-	var replacedAllowCIDR []string
+	replacedAllowCIDR := make([]string, len(t.AllowCIDR))
 
-	for _, cidr := range t.AllowCIDR {
+	for index, cidr := range t.AllowCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedAllowCIDR = append(replacedAllowCIDR, actual)
+		replacedAllowCIDR[index] = actual
 	}
 
-	t.AllowCIDR = replacedAllowCIDR
+	if len(replacedAllowCIDR) != 0 {
+		t.AllowCIDR = replacedAllowCIDR
+	}
 
-	var replacedDenyCIDR []string // nil slice
+	replacedDenyCIDR := make([]string, len(t.DenyCIDR))
 
-	for _, cidr := range t.DenyCIDR {
+	for index, cidr := range t.DenyCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedDenyCIDR = append(replacedDenyCIDR, actual)
+		replacedDenyCIDR[index] = actual
 	}
 
-	t.DenyCIDR = replacedDenyCIDR
+	if len(replacedDenyCIDR) != 0 {
+		t.DenyCIDR = replacedDenyCIDR
+	}
 
 	return nil
 }
