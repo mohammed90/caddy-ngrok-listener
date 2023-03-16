@@ -1,11 +1,11 @@
 package ngroklistener
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseTLS(t *testing.T) {
@@ -32,13 +32,9 @@ func TestParseTLS(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				}
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -92,15 +88,10 @@ func TestTLSDomain(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Domain != tun.Domain {
-					t.Errorf("Created TLS (\n%#v\n) does not match expected (\n%#v\n)", tun.Domain, test.expected.Domain)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Domain, tun.Domain)
 			}
 		})
 	}
@@ -162,15 +153,10 @@ func TestTLSMetadata(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Metadata != tun.Metadata {
-					t.Errorf("Created TLS (\n%#v\n) does not match expected (\n%#v\n)", tun.Metadata, test.expected.Metadata)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Metadata, tun.Metadata)
 			}
 		})
 	}
@@ -277,17 +263,11 @@ func TestTLSCIDRRestrictions(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-					t.Errorf("Created TLS (\n%#v\n) does not match expected (\n%#v\n)", tun.AllowCIDR, test.expected.AllowCIDR)
-				} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-					t.Errorf("Created TLS (\n%#v\n) does not match expected (\n%#v\n)", tun.DenyCIDR, test.expected.DenyCIDR)
-				}
+				require.Nil(t, err)
+				require.ElementsMatch(t, test.expected.AllowCIDR, tun.AllowCIDR)
+				require.ElementsMatch(t, test.expected.DenyCIDR, tun.DenyCIDR)
 			}
 		})
 	}

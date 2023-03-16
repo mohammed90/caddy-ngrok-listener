@@ -1,11 +1,11 @@
 package ngroklistener
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseHTTP(t *testing.T) {
@@ -32,13 +32,9 @@ func TestParseHTTP(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				}
+				require.Nil(t, err)
 			}
 		})
 	}
@@ -107,15 +103,10 @@ func TestHTTPBasicAuth(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if !reflect.DeepEqual(test.expected.BasicAuth, tun.BasicAuth) {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.BasicAuth, test.expected.BasicAuth)
-				}
+				require.Nil(t, err)
+				require.ElementsMatch(t, test.expected.BasicAuth, tun.BasicAuth)
 			}
 		})
 	}
@@ -153,15 +144,10 @@ func TestHTTPCircuitBreaker(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.CircuitBreaker != tun.CircuitBreaker {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.CircuitBreaker, test.expected.CircuitBreaker)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.CircuitBreaker, tun.CircuitBreaker)
 			}
 		})
 	}
@@ -223,15 +209,10 @@ func TestHTTPCompression(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Compression != tun.Compression {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Compression, test.expected.Compression)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Compression, tun.Compression)
 			}
 		})
 	}
@@ -293,15 +274,10 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.WebsocketTCPConverter, tun.WebsocketTCPConverter)
 			}
 		})
 	}
@@ -355,15 +331,10 @@ func TestHTTPDomain(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Domain != tun.Domain {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Domain, test.expected.Domain)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Domain, tun.Domain)
 			}
 		})
 	}
@@ -425,15 +396,10 @@ func TestHTTPMetadata(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Metadata != tun.Metadata {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Metadata, test.expected.Metadata)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Metadata, tun.Metadata)
 			}
 		})
 	}
@@ -479,15 +445,10 @@ func TestHTTPScheme(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Scheme != tun.Scheme {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.Scheme, test.expected.Scheme)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Scheme, tun.Scheme)
 			}
 		})
 	}
@@ -594,17 +555,11 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.AllowCIDR, test.expected.AllowCIDR)
-				} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-					t.Errorf("Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", tun.DenyCIDR, test.expected.DenyCIDR)
-				}
+				require.Nil(t, err)
+				require.ElementsMatch(t, test.expected.AllowCIDR, tun.AllowCIDR)
+				require.ElementsMatch(t, test.expected.DenyCIDR, tun.DenyCIDR)
 			}
 		})
 	}

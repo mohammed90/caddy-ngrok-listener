@@ -6,6 +6,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseLabeled(t *testing.T) {
@@ -89,13 +90,10 @@ func TestParseLabeled(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if !reflect.DeepEqual(test.expected.Labels, tun.Labels) {
+				require.Nil(t, err)
+				if !reflect.DeepEqual(test.expected.Labels, tun.Labels) {
 					t.Errorf("Created Labeled (\n%#v\n) does not match expected (\n%#v\n)", tun, test.expected)
 				}
 			}
@@ -159,15 +157,10 @@ func TestLabeledMetadata(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Metadata != tun.Metadata {
-					t.Errorf("Created Labeled (\n%#v\n) does not match expected (\n%#v\n)", tun.Metadata, test.expected.Metadata)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Metadata, tun.Metadata)
 			}
 		})
 	}

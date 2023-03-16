@@ -2,12 +2,12 @@ package ngroklistener
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseNgrok(t *testing.T) {
@@ -94,17 +94,11 @@ func TestParseNgrok(t *testing.T) {
 			err := n.UnmarshalCaddyfile(d)
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.AuthToken != n.AuthToken {
-					t.Errorf("Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", n.AuthToken, test.expected.AuthToken)
-				} else if !reflect.DeepEqual(test.expected.TunnelRaw, n.TunnelRaw) {
-					t.Errorf("Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", string(n.TunnelRaw), string(test.expected.TunnelRaw))
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.AuthToken, n.AuthToken)
+				require.Equal(t, test.expected.TunnelRaw, n.TunnelRaw)
 			}
 		})
 	}
@@ -165,15 +159,10 @@ func TestNgrokMetadata(t *testing.T) {
 			err := n.UnmarshalCaddyfile(d)
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Metadata != n.Metadata {
-					t.Errorf("Created Ngrok (\n%#v\n) does not match expected (\n%#v\n)", n.Metadata, test.expected.Metadata)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Metadata, n.Metadata)
 			}
 		})
 	}

@@ -1,11 +1,11 @@
 package ngroklistener
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseTCP(t *testing.T) {
@@ -40,15 +40,10 @@ func TestParseTCP(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.RemoteAddr != tun.RemoteAddr {
-					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.RemoteAddr, test.expected.RemoteAddr)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.RemoteAddr, tun.RemoteAddr)
 			}
 		})
 	}
@@ -110,15 +105,10 @@ func TestTCPMetadata(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if test.expected.Metadata != tun.Metadata {
-					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.Metadata, test.expected.Metadata)
-				}
+				require.Nil(t, err)
+				require.Equal(t, test.expected.Metadata, tun.Metadata)
 			}
 		})
 	}
@@ -225,17 +215,11 @@ func TestTCPCIDRRestrictions(t *testing.T) {
 			tun.Provision(caddy.Context{})
 
 			if test.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but found nil")
-				}
+				require.NotNil(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error but found error: %v", err)
-				} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.AllowCIDR, test.expected.AllowCIDR)
-				} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-					t.Errorf("Created TCP (\n%#v\n) does not match expected (\n%#v\n)", tun.DenyCIDR, test.expected.DenyCIDR)
-				}
+				require.Nil(t, err)
+				require.ElementsMatch(t, test.expected.AllowCIDR, tun.AllowCIDR)
+				require.ElementsMatch(t, test.expected.DenyCIDR, tun.DenyCIDR)
 			}
 		})
 	}
