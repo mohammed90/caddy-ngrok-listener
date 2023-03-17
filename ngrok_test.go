@@ -104,7 +104,7 @@ func TestNgrokRegion(t *testing.T) {
 			expectUnmarshalErr: true,
 		},
 		{
-			name: "authtoken-too-many-arg",
+			name: "region-too-many-arg",
 			caddyInput: `ngrok {
 				region foo bar
 			}`,
