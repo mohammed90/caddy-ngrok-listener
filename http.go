@@ -221,7 +221,7 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return err
 				}
 			default:
-				return d.ArgErr()
+				return d.Errf("unrecognized subdirective %s", subdirective)
 			}
 		}
 	}

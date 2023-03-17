@@ -149,7 +149,7 @@ func (t *TCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 				t.DenyCIDR = append(t.DenyCIDR, d.RemainingArgs()...)
 			default:
-				return d.ArgErr()
+				return d.Errf("unrecognized subdirective %s", subdirective)
 			}
 		}
 	}
