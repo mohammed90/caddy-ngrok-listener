@@ -43,9 +43,14 @@ type HTTP struct {
 	WebsocketTCPConverter bool `json:"websocket_tcp_converter,omitempty"`
 
 	// A map of basicauth, username and password value pairs for this tunnel.
-	BasicAuth map[string]string `json:"basic_auth,omitempty"`
+	BasicAuth []basicAuthCred `json:"basic_auth,omitempty"`
 
 	l *zap.Logger
+}
+
+type basicAuthCred struct {
+	username string
+	password string
 }
 
 // CaddyModule implements caddy.Module
@@ -62,9 +67,7 @@ func (*HTTP) CaddyModule() caddy.ModuleInfo {
 func (t *HTTP) Provision(ctx caddy.Context) error {
 	t.l = ctx.Logger()
 
-	if err := t.doReplace(); err != nil {
-		return fmt.Errorf("loading doing replacements: %v", err)
-	}
+	t.doReplace()
 
 	if err := t.provisionOpts(); err != nil {
 		return fmt.Errorf("provisioning http tunnel opts: %v", err)
@@ -99,10 +102,13 @@ func (t *HTTP) provisionOpts() error {
 	}
 
 	if t.Scheme != "" {
-		if t.Scheme == "http" {
+		switch t.Scheme {
+		case "http":
 			t.opts = append(t.opts, config.WithScheme(config.SchemeHTTP))
-		} else if t.Scheme == "https" {
+		case "https":
 			t.opts = append(t.opts, config.WithScheme(config.SchemeHTTPS))
+		default:
+			return fmt.Errorf("unrecognized http tunnel scheme %s", t.Scheme)
 		}
 	}
 
@@ -110,14 +116,14 @@ func (t *HTTP) provisionOpts() error {
 		t.opts = append(t.opts, config.WithWebsocketTCPConversion())
 	}
 
-	for username, password := range t.BasicAuth {
-		t.opts = append(t.opts, config.WithBasicAuth(username, password))
+	for _, basic_auth := range t.BasicAuth {
+		t.opts = append(t.opts, config.WithBasicAuth(basic_auth.username, basic_auth.password))
 	}
 
 	return nil
 }
 
-func (t *HTTP) doReplace() error {
+func (t *HTTP) doReplace() {
 	repl := caddy.NewReplacer()
 	replaceableFields := []*string{
 		&t.Metadata,
@@ -131,43 +137,26 @@ func (t *HTTP) doReplace() error {
 		*field = actual
 	}
 
-	replacedAllowCIDR := make([]string, len(t.AllowCIDR))
-
 	for index, cidr := range t.AllowCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedAllowCIDR[index] = actual
+		t.AllowCIDR[index] = actual
 	}
-
-	if len(replacedAllowCIDR) != 0 {
-		t.AllowCIDR = replacedAllowCIDR
-	}
-
-	replacedDenyCIDR := make([]string, len(t.DenyCIDR))
 
 	for index, cidr := range t.DenyCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedDenyCIDR[index] = actual
+		t.DenyCIDR[index] = actual
 	}
 
-	if len(replacedDenyCIDR) != 0 {
-		t.DenyCIDR = replacedDenyCIDR
+	for i, basic_auth := range t.BasicAuth {
+		actualUsername := repl.ReplaceKnown(basic_auth.username, "")
+
+		actualPassword := repl.ReplaceKnown(basic_auth.password, "")
+
+		t.BasicAuth[i] = basicAuthCred{username: actualUsername, password: actualPassword}
+
 	}
-
-	replacedBasicAuth := make(map[string]string, len(t.BasicAuth))
-
-	for username, password := range t.BasicAuth {
-		actualUsername := repl.ReplaceKnown(username, "")
-
-		actualPassword := repl.ReplaceKnown(password, "")
-
-		replacedBasicAuth[actualUsername] = actualPassword
-	}
-
-	t.BasicAuth = replacedBasicAuth
-
-	return nil
 }
 
 // convert to ngrok's Tunnel type
@@ -289,10 +278,6 @@ func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 		password string
 	)
 
-	if t.BasicAuth == nil {
-		t.BasicAuth = map[string]string{}
-	}
-
 	minLenPassword := 8
 
 	username = d.Val()
@@ -302,15 +287,11 @@ func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 			return d.ArgErr()
 		}
 
-		if username == "" || password == "" {
-			return d.Err("username and password cannot be empty or missing")
-		}
-
 		if len(password) < minLenPassword {
 			return d.Err("password must be at least eight characters.")
 		}
 
-		t.BasicAuth[username] = password
+		t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
 
 		return nil
 	}
@@ -322,15 +303,11 @@ func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 			return d.ArgErr()
 		}
 
-		if username == "" || password == "" {
-			return d.Err("username and password cannot be empty or missing")
-		}
-
 		if len(password) < minLenPassword {
 			return d.Err("password must be at least eight characters.")
 		}
 
-		t.BasicAuth[username] = password
+		t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
 	}
 
 	return nil

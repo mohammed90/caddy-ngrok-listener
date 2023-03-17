@@ -19,6 +19,19 @@ func TestParseLabeled(t *testing.T) {
 			expectProvisionErr: true,
 		},
 		{
+			name: "labeled takes no args",
+			caddyInput: `labeled arg1 {
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "labeled unsupported directive",
+			caddyInput: `labeled {
+				directive
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
 			name: "simple-inline",
 			caddyInput: `labeled {
 				label foo bar
@@ -112,9 +125,18 @@ func TestParseLabeled(t *testing.T) {
 			),
 		},
 		{
-			name: "label-too-many-args",
+			name: "label-inline-too-many-args",
 			caddyInput: `labeled {
 				label foo bar toomanyargs
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "label-block-too-many-args",
+			caddyInput: `labeled {
+				label {
+					foo bar toomanyargs
+				}
 			}`,
 			expectUnmarshalErr: true,
 		},

@@ -19,6 +19,27 @@ func TestParseTCP(t *testing.T) {
 			expectedOpts: config.TCPEndpoint(),
 		},
 		{
+			name: "tcp takes no args",
+			caddyInput: `tcp arg1 {
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "tcp unsupported directive",
+			caddyInput: `tcp {
+				directive
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestTCPRemoteAddr(t *testing.T) {
+	cases := genericTestCases[*TCP]{
+		{
 			name: "remote addr",
 			caddyInput: `tcp {
 				remote_addr 0.tcp.ngrok.io:1234
@@ -29,6 +50,20 @@ func TestParseTCP(t *testing.T) {
 			expectedOpts: config.TCPEndpoint(
 				config.WithRemoteAddr("0.tcp.ngrok.io:1234"),
 			),
+		},
+		{
+			name: "remote addr no arg",
+			caddyInput: `tcp {
+				remote_addr
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "remote addr extra args",
+			caddyInput: `tcp {
+				remote_addr 0.tcp.ngrok.io:1234 1.tcp.ngrok.io:1234
+			}`,
+			expectUnmarshalErr: true,
 		},
 	}
 

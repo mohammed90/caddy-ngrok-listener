@@ -18,6 +18,19 @@ func TestParseTLS(t *testing.T) {
 			},
 			expectedOpts: config.TLSEndpoint(),
 		},
+		{
+			name: "tls takes no args",
+			caddyInput: `tls arg1 {
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "tls unsupported directive",
+			caddyInput: `tls {
+				directive
+			}`,
+			expectUnmarshalErr: true,
+		},
 	}
 
 	cases.runAll(t)

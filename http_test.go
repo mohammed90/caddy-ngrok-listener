@@ -19,6 +19,19 @@ func TestParseHTTP(t *testing.T) {
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
+		{
+			name: "http takes no args",
+			caddyInput: `http arg1 {
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "http unsupported directive",
+			caddyInput: `http {
+				directive
+			}`,
+			expectUnmarshalErr: true,
+		},
 	}
 
 	cases.runAll(t)
@@ -42,10 +55,11 @@ func TestHTTPBasicAuth(t *testing.T) {
 				basic_auth foo barbarbar
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.NotEmpty(t, actual.BasicAuth)
-				require.Len(t, actual.BasicAuth, 1)
-				require.Contains(t, actual.BasicAuth, "foo")
-				require.Equal(t, actual.BasicAuth["foo"], "barbarbar")
+				expected := []basicAuthCred{
+					{"foo", "barbarbar"},
+				}
+
+				require.Equal(t, expected, actual.BasicAuth)
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithBasicAuth("foo", "barbarbar"),
@@ -59,49 +73,104 @@ func TestHTTPBasicAuth(t *testing.T) {
 				}
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.NotEmpty(t, actual.BasicAuth)
-				require.Len(t, actual.BasicAuth, 1)
-				require.Contains(t, actual.BasicAuth, "foo")
-				require.Equal(t, actual.BasicAuth["foo"], "barbarbar")
+				expected := []basicAuthCred{
+					{"foo", "barbarbar"},
+				}
+
+				require.Equal(t, expected, actual.BasicAuth)
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithBasicAuth("foo", "barbarbar"),
 			),
 		},
-		// TODO: This test errors in the expectedOpts due to order of map not being consistent.
-		// {
-		// 	name: "multiple",
-		// 	caddyInput: `http {
-		// 		basic_auth foo barbarbar
-		// 		basic_auth spam eggsandcheese
-		// 		basic_auth {
-		// 			bar bazbazbaz
-		// 			bam bambinos
-		// 		}
-		// 	}`,
-		// 	expectConfig: func(t *testing.T, actual *HTTP) {
-		// 		require.NotEmpty(t, actual.BasicAuth)
-		// 		require.Len(t, actual.BasicAuth, 4)
-		// 		require.Contains(t, actual.BasicAuth, "foo")
-		// 		require.Equal(t, actual.BasicAuth["foo"], "barbarbar")
-		// 		require.Contains(t, actual.BasicAuth, "spam")
-		// 		require.Equal(t, actual.BasicAuth["spam"], "eggsandcheese")
-		// 		require.Contains(t, actual.BasicAuth, "bar")
-		// 		require.Equal(t, actual.BasicAuth["bar"], "bazbazbaz")
-		// 		require.Contains(t, actual.BasicAuth, "bam")
-		// 		require.Equal(t, actual.BasicAuth["bam"], "bambinos")
-		// 	},
-		// 	expectedOpts: config.HTTPEndpoint(
-		// 		config.WithBasicAuth("spam", "eggsandcheese"),
-		// 		config.WithBasicAuth("bam", "bambinos"),
-		// 		config.WithBasicAuth("bar", "bazbazbaz"),
-		// 		config.WithBasicAuth("foo", "barbarbar"),
-		// 	),
-		// },
 		{
-			name: "password-too-short",
+			name: "multiple",
+			caddyInput: `http {
+				basic_auth foo barbarbar
+				basic_auth spam eggsandcheese
+				basic_auth {
+					bar bazbazbaz
+					bam bambinos
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				expected := []basicAuthCred{
+					{"foo", "barbarbar"},
+					{"spam", "eggsandcheese"},
+					{"bar", "bazbazbaz"},
+					{"bam", "bambinos"},
+				}
+
+				require.Equal(t, expected, actual.BasicAuth)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithBasicAuth("foo", "barbarbar"),
+				config.WithBasicAuth("spam", "eggsandcheese"),
+				config.WithBasicAuth("bar", "bazbazbaz"),
+				config.WithBasicAuth("bam", "bambinos"),
+			),
+		},
+		{
+			name: "inline-password-too-short",
 			caddyInput: `http {
 				basic_auth foo bar
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "block-password-too-short",
+			caddyInput: `http {
+				basic_auth {
+					foo bar
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		// {
+		// 	name: "basic_auth-inline-no-arg",
+		// 	caddyInput: `http {
+		// 		basic_auth
+		// 	}`,
+		// 	expectUnmarshalErr: true,
+		// },
+		{
+			name: "basic_auth-inline-no-password",
+			caddyInput: `http {
+				basic_auth foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-inline-too-many-arg",
+			caddyInput: `http {
+				basic_auth foo bar baz
+			}`,
+			expectUnmarshalErr: true,
+		},
+		// {
+		// 	name: "basic_auth-block-no-arg",
+		// 	caddyInput: `http {
+		// 		basic_auth {
+
+		// 		}
+		// 	}`,
+		// 	expectUnmarshalErr: true,
+		// },
+		{
+			name: "basic_auth-block-no-password",
+			caddyInput: `http {
+				basic_auth {
+					foo
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-block-too-many-arg",
+			caddyInput: `http {
+				basic_auth {
+					foo bar baz
+				}
 			}`,
 			expectUnmarshalErr: true,
 		},
@@ -135,6 +204,27 @@ func TestHTTPCircuitBreaker(t *testing.T) {
 			expectedOpts: config.HTTPEndpoint(
 				config.WithCircuitBreaker(0.5),
 			),
+		},
+		{
+			name: "breakered-no-arg",
+			caddyInput: `http {
+				circuit_breaker
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				circuit_breaker foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "breakered-too-many-arg",
+			caddyInput: `http {
+				circuit_breaker 0.3 0.7
+			}`,
+			expectUnmarshalErr: true,
 		},
 	}
 
@@ -197,6 +287,20 @@ func TestHTTPCompression(t *testing.T) {
 				config.WithCompression(),
 			),
 		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				compression foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "compressed-too-many-arg",
+			caddyInput: `http {
+				compression true false
+			}`,
+			expectUnmarshalErr: true,
+		},
 	}
 
 	cases.runAll(t)
@@ -249,7 +353,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		{
 			name: "converted-no-arg",
 			caddyInput: `http {
-				websocket_tcp_converter true
+				websocket_tcp_converter
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
 				require.True(t, actual.WebsocketTCPConverter)
@@ -257,6 +361,20 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 			expectedOpts: config.HTTPEndpoint(
 				config.WithWebsocketTCPConversion(),
 			),
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				websocket_tcp_converter foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "converted-too-many-arg",
+			caddyInput: `http {
+				websocket_tcp_converter true false
+			}`,
+			expectUnmarshalErr: true,
 		},
 	}
 
@@ -399,6 +517,31 @@ func TestHTTPScheme(t *testing.T) {
 			expectedOpts: config.HTTPEndpoint(
 				config.WithScheme("http"),
 			),
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				scheme foo
+			}`,
+			expectUnmarshalErr: false,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, "foo", actual.Scheme)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "scheme-no-arg",
+			caddyInput: `http {
+				scheme
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "scheme-too-many-arg",
+			caddyInput: `http {
+				scheme http https
+			}`,
+			expectUnmarshalErr: true,
 		},
 	}
 

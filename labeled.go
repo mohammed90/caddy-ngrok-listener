@@ -40,22 +40,20 @@ func (*Labeled) CaddyModule() caddy.ModuleInfo {
 func (t *Labeled) Provision(ctx caddy.Context) error {
 	t.l = ctx.Logger()
 
-	if err := t.doReplace(); err != nil {
-		return fmt.Errorf("loading doing replacements: %v", err)
-	}
+	t.doReplace()
 
 	if err := t.provisionOpts(); err != nil {
 		return fmt.Errorf("provisioning labeled tunnel opts: %v", err)
-	}
-
-	if t.Labels == nil || len(t.Labels) == 0 {
-		return fmt.Errorf("a label is required for labeled tunnels")
 	}
 
 	return nil
 }
 
 func (t *Labeled) provisionOpts() error {
+	if t.Labels == nil || len(t.Labels) == 0 {
+		return fmt.Errorf("a label is required for labeled tunnels")
+	}
+
 	for label, value := range t.Labels {
 		t.opts = append(t.opts, config.WithLabel(label, value))
 		t.l.Info("applying label", zap.String("label", label), zap.String("value", value))
@@ -68,7 +66,7 @@ func (t *Labeled) provisionOpts() error {
 	return nil
 }
 
-func (t *Labeled) doReplace() error {
+func (t *Labeled) doReplace() {
 	repl := caddy.NewReplacer()
 	replaceableFields := []*string{
 		&t.Metadata,
@@ -90,7 +88,6 @@ func (t *Labeled) doReplace() error {
 
 	t.Labels = replacedLabels
 
-	return nil
 }
 
 // convert to ngrok's Tunnel type

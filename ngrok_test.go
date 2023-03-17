@@ -17,33 +17,218 @@ func TestParseNgrok(t *testing.T) {
 			}`,
 			expectConfig: func(t *testing.T, actual *Ngrok) {
 				require.NotNil(t, actual)
-				require.Empty(t, actual.AuthToken, "")
+			},
+		},
+		{
+			name: "ngrok takes no args",
+			caddyInput: `ngrok arg1 {
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "ngrok unsupported directive",
+			caddyInput: `ngrok {
+				directive
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestNgrokAuthToken(t *testing.T) {
+	cases := genericNgrokTestCases[*Ngrok]{
+		{
+			name: "empty",
+			caddyInput: `ngrok {
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.AuthToken)
 			},
 		},
 		{
 			name: "set authtoken",
 			caddyInput: `ngrok {
-				authtoken test
+				authtoken foo
 			}`,
 			expectConfig: func(t *testing.T, actual *Ngrok) {
-				require.Equal(t, actual.AuthToken, "test")
+				require.Equal(t, actual.AuthToken, "foo")
 			},
 		},
 		{
-			name: "misc opts",
+			name: "authtoken-no-arg",
+			caddyInput: `ngrok {
+				authtoken
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.AuthToken)
+			},
+		},
+		{
+			name: "authtoken-too-many-arg",
+			caddyInput: `ngrok {
+				authtoken foo bar
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+	cases.runAll(t)
+}
+
+func TestNgrokRegion(t *testing.T) {
+	cases := genericNgrokTestCases[*Ngrok]{
+		{
+			name: "empty",
+			caddyInput: `ngrok {
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.Region)
+			},
+		},
+		{
+			name: "set region",
 			caddyInput: `ngrok {
 				region us
-				server test.ngrok.com
-				heartbeat_tolerance 1m
-				heartbeat_interval 5s
 			}`,
 			expectConfig: func(t *testing.T, actual *Ngrok) {
 				require.Equal(t, actual.Region, "us")
+			},
+		},
+		{
+			name: "region-no-arg",
+			caddyInput: `ngrok {
+				region
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "authtoken-too-many-arg",
+			caddyInput: `ngrok {
+				region foo bar
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+	cases.runAll(t)
+}
+
+func TestNgrokServer(t *testing.T) {
+	cases := genericNgrokTestCases[*Ngrok]{
+		{
+			name: "empty",
+			caddyInput: `ngrok {
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.Server)
+			},
+		},
+		{
+			name: "set region",
+			caddyInput: `ngrok {
+				server test.ngrok.com
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
 				require.Equal(t, actual.Server, "test.ngrok.com")
-				require.Equal(t, actual.HeartbeatTolerance, caddy.Duration(1*time.Minute))
+			},
+		},
+		{
+			name: "server-no-arg",
+			caddyInput: `ngrok {
+				server
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "server-too-many-arg",
+			caddyInput: `ngrok {
+				server test.ngrok.com test2.ngrok.com
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+	cases.runAll(t)
+}
+
+func TestNgrokHeartbeat(t *testing.T) {
+	cases := genericNgrokTestCases[*Ngrok]{
+		{
+			name: "empty",
+			caddyInput: `ngrok {
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.HeartbeatInterval)
+				require.Empty(t, actual.HeartbeatTolerance)
+			},
+		},
+		{
+			name: "set heartbeat_interval",
+			caddyInput: `ngrok {
+				heartbeat_interval 5s
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
 				require.Equal(t, actual.HeartbeatInterval, caddy.Duration(5*time.Second))
 			},
 		},
+		{
+			name: "set heartbeat_tolerance",
+			caddyInput: `ngrok {
+				heartbeat_tolerance 1m
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.HeartbeatTolerance, caddy.Duration(1*time.Minute))
+
+			},
+		},
+		{
+			name: "heartbeat-interval-no-arg",
+			caddyInput: `ngrok {
+				heartbeat_interval
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "heartbeat-tolerance-no-arg",
+			caddyInput: `ngrok {
+				heartbeat_tolerance
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "heartbeat-interval-too-many-arg",
+			caddyInput: `ngrok {
+				heartbeat_interval 1m 2m
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "heartbeat-tolerance-too-many-arg",
+			caddyInput: `ngrok {
+				heartbeat_tolerance 1m 2m
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "heartbeat-interval-parse-err",
+			caddyInput: `ngrok {
+				heartbeat_interval foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "heartbeat-tolerance-parse-err",
+			caddyInput: `ngrok {
+				heartbeat_tolerance foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+	cases.runAll(t)
+}
+
+func TestNgrokTunnel(t *testing.T) {
+	cases := genericNgrokTestCases[*Ngrok]{
 		{
 			name: "load tunnel default",
 			caddyInput: `ngrok {
@@ -109,12 +294,27 @@ func TestParseNgrok(t *testing.T) {
 				require.JSONEq(t, string(j), `{"type":"labeled","labels":{"foo":"bar"}}`)
 			},
 		},
+		{
+			name: "load tunnel extra args",
+			caddyInput: `ngrok {
+				tunnel tcp arg1 {
+
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "load tunnel unrecognized type",
+			caddyInput: `ngrok {
+				tunnel foo{
+
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
 	}
-
 	cases.runAll(t)
-
 }
-
 func TestNgrokMetadata(t *testing.T) {
 	cases := genericNgrokTestCases[*Ngrok]{
 		{
