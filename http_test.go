@@ -45,7 +45,7 @@ func TestHTTPBasicAuth(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.BasicAuth)
+				require.Nil(t, actual.BasicAuth)
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -143,7 +143,7 @@ func TestHTTPBasicAuth(t *testing.T) {
 		{
 			name: "basic_auth-inline-too-many-arg",
 			caddyInput: `http {
-				basic_auth foo bar baz
+				basic_auth foo barbarbar bazbazbaz
 			}`,
 			expectUnmarshalErr: true,
 		},
@@ -169,7 +169,16 @@ func TestHTTPBasicAuth(t *testing.T) {
 			name: "basic_auth-block-too-many-arg",
 			caddyInput: `http {
 				basic_auth {
-					foo bar baz
+					foo barbarbar bazbazbaz
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-no-combine",
+			caddyInput: `http {
+				basic_auth foo barbarbar {
+					spam eggsandcheese
 				}
 			}`,
 			expectUnmarshalErr: true,
