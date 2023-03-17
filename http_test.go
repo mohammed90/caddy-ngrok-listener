@@ -126,13 +126,13 @@ func TestHTTPBasicAuth(t *testing.T) {
 			}`,
 			expectUnmarshalErr: true,
 		},
-		// {
-		// 	name: "basic_auth-inline-no-arg",
-		// 	caddyInput: `http {
-		// 		basic_auth
-		// 	}`,
-		// 	expectUnmarshalErr: true,
-		// },
+		{
+			name: "basic_auth-inline-no-arg",
+			caddyInput: `http {
+				basic_auth
+			}`,
+			expectUnmarshalErr: true,
+		},
 		{
 			name: "basic_auth-inline-no-password",
 			caddyInput: `http {
@@ -147,15 +147,15 @@ func TestHTTPBasicAuth(t *testing.T) {
 			}`,
 			expectUnmarshalErr: true,
 		},
-		// {
-		// 	name: "basic_auth-block-no-arg",
-		// 	caddyInput: `http {
-		// 		basic_auth {
+		{
+			name: "basic_auth-block-no-arg",
+			caddyInput: `http {
+				basic_auth {
 
-		// 		}
-		// 	}`,
-		// 	expectUnmarshalErr: true,
-		// },
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
 		{
 			name: "basic_auth-block-no-password",
 			caddyInput: `http {

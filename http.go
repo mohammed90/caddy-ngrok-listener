@@ -274,8 +274,9 @@ func (t *HTTP) unmarshalDenyCidr(d *caddyfile.Dispenser) error {
 
 func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 	var (
-		username string
-		password string
+		username       string
+		password       string
+		foundBasicAuth bool
 	)
 
 	minLenPassword := 8
@@ -287,27 +288,34 @@ func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 			return d.ArgErr()
 		}
 
+		foundBasicAuth = true
+
 		if len(password) < minLenPassword {
 			return d.Err("password must be at least eight characters.")
 		}
 
 		t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
 
-		return nil
+	} else { // block of basicauth
+		for nesting := d.Nesting(); d.NextBlock(nesting); {
+			username := d.Val()
+
+			foundBasicAuth = true
+
+			if !d.AllArgs(&password) {
+				return d.ArgErr()
+			}
+
+			if len(password) < minLenPassword {
+				return d.Err("password must be at least eight characters.")
+			}
+
+			t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
+		}
 	}
 
-	for nesting := d.Nesting(); d.NextBlock(nesting); { // block of basicauth
-		username := d.Val()
-
-		if !d.AllArgs(&password) {
-			return d.ArgErr()
-		}
-
-		if len(password) < minLenPassword {
-			return d.Err("password must be at least eight characters.")
-		}
-
-		t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
+	if !foundBasicAuth {
+		return d.ArgErr()
 	}
 
 	return nil
