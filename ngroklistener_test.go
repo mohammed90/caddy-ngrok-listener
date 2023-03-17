@@ -1,6 +1,7 @@
 package ngroklistener
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -46,7 +47,10 @@ func (gt genericTest[C]) run(t *testing.T) {
 			}
 		}
 
-		err = tun.Provision(caddy.Context{})
+		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.Background()})
+		defer cancel()
+
+		err = tun.Provision(ctx)
 
 		if gt.expectProvisionErr {
 			require.NotNil(t, err)
@@ -61,6 +65,59 @@ func (gt genericTest[C]) run(t *testing.T) {
 }
 
 func (gtcs genericTestCases[C]) runAll(t *testing.T) {
+	for _, tc := range gtcs {
+		tc.run(t)
+	}
+}
+
+type NgrokTestConfig interface {
+	Provision(caddy.Context) error
+	UnmarshalCaddyfile(*caddyfile.Dispenser) error
+}
+type genericNgrokTest[C NgrokTestConfig] struct {
+	name               string
+	caddyInput         string
+	expectUnmarshalErr bool
+	expectProvisionErr bool
+	expectConfig       func(t *testing.T, actual C)
+}
+
+type genericNgrokTestCases[C NgrokTestConfig] []genericNgrokTest[C]
+
+func (gt genericNgrokTest[C]) run(t *testing.T) {
+	t.Run(gt.name, func(t *testing.T) {
+		d := caddyfile.NewTestDispenser(gt.caddyInput)
+		var dummy C
+		ct := reflect.TypeOf(dummy)
+		ngrok := reflect.New(ct.Elem()).Interface().(C)
+		err := ngrok.UnmarshalCaddyfile(d)
+
+		if gt.expectUnmarshalErr {
+			require.NotNil(t, err)
+			return
+		} else {
+			require.Nil(t, err)
+			if assert.NotNil(t, gt.expectConfig) {
+				gt.expectConfig(t, ngrok)
+			}
+		}
+
+		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.Background()})
+		defer cancel()
+
+		err = ngrok.Provision(ctx)
+
+		if gt.expectProvisionErr {
+			require.NotNil(t, err)
+			return
+		} else {
+			require.Nil(t, err)
+		}
+
+	})
+}
+
+func (gtcs genericNgrokTestCases[C]) runAll(t *testing.T) {
 	for _, tc := range gtcs {
 		tc.run(t)
 	}

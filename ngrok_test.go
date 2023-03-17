@@ -6,164 +6,159 @@ import (
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParseNgrok(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  Ngrok
-	}{
+	cases := genericNgrokTestCases[*Ngrok]{
 		{
 			name: "default",
-			input: `ngrok {
+			caddyInput: `ngrok {
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.NotNil(t, actual)
+				require.Empty(t, actual.AuthToken, "")
+			},
 		},
 		{
 			name: "set authtoken",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				authtoken test
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{AuthToken: "test"},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.AuthToken, "test")
+			},
 		},
 		{
 			name: "misc opts",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				region us
 				server test.ngrok.com
 				heartbeat_tolerance 1m
 				heartbeat_interval 5s
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{Region: "us", Server: "test", HeartbeatTolerance: caddy.Duration(1 * time.Minute), HeartbeatInterval: caddy.Duration(5 * time.Second)},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.Region, "us")
+				require.Equal(t, actual.Server, "test.ngrok.com")
+				require.Equal(t, actual.HeartbeatTolerance, caddy.Duration(1*time.Minute))
+				require.Equal(t, actual.HeartbeatInterval, caddy.Duration(5*time.Second))
+			},
+		},
+		{
+			name: "load tunnel default",
+			caddyInput: `ngrok {
+				tunnel {
+
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.TunnelRaw, json.RawMessage(`{"type":"tcp"}`))
+			},
 		},
 		{
 			name: "load tcp",
-			input: `ngrok {
-				authtoken test
+			caddyInput: `ngrok {
 				tunnel tcp {
 
 				}
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{AuthToken: "test", TunnelRaw: json.RawMessage(`{"type":"tcp"}`)},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				j, err := actual.TunnelRaw.MarshalJSON()
+				require.Nil(t, err)
+				require.JSONEq(t, string(j), `{"type":"tcp"}`)
+			},
 		},
 		{
 			name: "load tls",
-			input: `ngrok {
-				authtoken test
+			caddyInput: `ngrok {
 				tunnel tls {
 
 				}
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{AuthToken: "test", TunnelRaw: json.RawMessage(`{"type":"tls"}`)},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				j, err := actual.TunnelRaw.MarshalJSON()
+				require.Nil(t, err)
+				require.JSONEq(t, string(j), `{"type":"tls"}`)
+			},
 		},
 		{
 			name: "load http",
-			input: `ngrok {
-				authtoken test
+			caddyInput: `ngrok {
 				tunnel http {
 
 				}
-			}`, shouldErr: false,
-			expected: Ngrok{AuthToken: "test", TunnelRaw: json.RawMessage(`{"type":"http"}`)},
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				j, err := actual.TunnelRaw.MarshalJSON()
+				require.Nil(t, err)
+				require.JSONEq(t, string(j), `{"type":"http"}`)
+			},
+			// expected: Ngrok{AuthToken: "test", TunnelRaw: json.RawMessage(`{"type":"http"}`)},
 		},
 		{
 			name: "load labeled",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				authtoken test
 				tunnel labeled {
-
+					label foo bar
 				}
-			}`, shouldErr: false,
-			expected: Ngrok{AuthToken: "test", TunnelRaw: json.RawMessage(`{"type":"labeled"}`)},
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				j, err := actual.TunnelRaw.MarshalJSON()
+				require.Nil(t, err)
+				require.JSONEq(t, string(j), `{"type":"labeled","labels":{"foo":"bar"}}`)
+			},
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			n := Ngrok{}
-			err := n.UnmarshalCaddyfile(d)
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, test.expected.AuthToken, n.AuthToken)
-				require.Equal(t, test.expected.TunnelRaw, n.TunnelRaw)
-			}
-		})
-	}
 }
 
 func TestNgrokMetadata(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		shouldErr bool
-		expected  Ngrok
-	}{
+	cases := genericNgrokTestCases[*Ngrok]{
 		{
 			name: "absent",
-			input: `ngrok {
+			caddyInput: `ngrok {
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{Metadata: ""},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.Metadata)
+			},
 		},
 		{
 			name: "with metadata",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				metadata test
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{Metadata: "test"},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.Metadata, "test")
+			},
 		},
 		{
 			name: "metadata-single-arg-quotes",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				metadata "Hello, World!"
 			}`,
-			shouldErr: false,
-			expected:  Ngrok{Metadata: "Hello, World!"},
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.Metadata, "Hello, World!")
+			},
 		},
 		{
 			name: "metadata-no-args",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				metadata
 			}`,
-			shouldErr: true,
-			expected:  Ngrok{Metadata: ""},
+			expectUnmarshalErr: true,
 		},
 		{
 			name: "metadata-too-many-args",
-			input: `ngrok {
+			caddyInput: `ngrok {
 				metadata test test2
 			}`,
-			shouldErr: true,
-			expected:  Ngrok{Metadata: ""},
+			expectUnmarshalErr: true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d := caddyfile.NewTestDispenser(test.input)
-			n := Ngrok{}
-			err := n.UnmarshalCaddyfile(d)
+	cases.runAll(t)
 
-			if test.shouldErr {
-				require.NotNil(t, err)
-			} else {
-				require.Nil(t, err)
-				require.Equal(t, test.expected.Metadata, n.Metadata)
-			}
-		})
-	}
 }
