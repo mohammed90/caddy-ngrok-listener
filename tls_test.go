@@ -263,3 +263,98 @@ func TestTLSCIDRRestrictions(t *testing.T) {
 	cases.runAll(t)
 
 }
+
+func TestTLSTermination(t *testing.T) {
+
+	cases := genericTestCases[*TLS]{
+		{
+			name: "absent",
+			caddyInput: `tls {
+			}`,
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Empty(t, actual.CertPEM)
+				require.Empty(t, actual.KeyPEM)
+			},
+			expectedOpts: config.TLSEndpoint(),
+		},
+		{
+			name: "no-args",
+			caddyInput: `tls {
+				cert
+				key
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "too-many-args",
+			caddyInput: `tls {
+				cert cert.pem foo.pem
+				key key.pem
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "missing cert",
+			caddyInput: `tls {
+				key key.pem
+			}`,
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, "key.pem", actual.KeyPEM)
+				require.Empty(t, actual.CertPEM)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "missing key",
+			caddyInput: `tls {
+				cert cert.pem
+			}`,
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, "cert.pem", actual.CertPEM)
+				require.Empty(t, actual.KeyPEM)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "non-exist-cert-path",
+			caddyInput: `tls {
+				cert testdata/bogus-cert.pem
+				key testdata/key.pem
+			}`,
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, "testdata/bogus-cert.pem", actual.CertPEM)
+				require.Equal(t, "testdata/key.pem", actual.KeyPEM)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "non-exist-key-path",
+			caddyInput: `tls {
+				cert testdata/cert.pem
+				key testdata/bogus-key.pem
+			}`,
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, "testdata/cert.pem", actual.CertPEM)
+				require.Equal(t, "testdata/bogus-key.pem", actual.KeyPEM)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "with termination",
+			caddyInput: `tls {
+				cert testdata/cert.pem
+				key testdata/key.pem
+			}`,
+			expectConfig: func(t *testing.T, actual *TLS) {
+				require.Equal(t, "testdata/cert.pem", actual.CertPEM)
+				require.Equal(t, "testdata/key.pem", actual.KeyPEM)
+			},
+			expectedOpts: config.TLSEndpoint(
+				config.WithTLSTermination(config.WithTLSTerminationKeyPair([]byte("cert"), []byte("key"))),
+			),
+		},
+	}
+
+	cases.runAll(t)
+
+}

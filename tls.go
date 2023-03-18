@@ -1,7 +1,10 @@
 package ngroklistener
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -30,6 +33,12 @@ type TLS struct {
 	// Rejects connections that match the given CIDRs and allows all other CIDRs.
 	DenyCIDR []string `json:"deny_cidr,omitempty"`
 
+	// Path to the Cert.PEM for TLS termination
+	CertPEM string `json:"cert,omitempty"`
+
+	// Path to the Key.PEM for TLS termination
+	KeyPEM string `json:"key,omitempty"`
+
 	l *zap.Logger
 }
 
@@ -57,11 +66,11 @@ func (t *TLS) Provision(ctx caddy.Context) error {
 }
 
 func (t *TLS) provisionOpts() error {
-	if t.Domain != "" {
+	if strings.TrimSpace(t.Domain) != "" {
 		t.opts = append(t.opts, config.WithDomain(t.Domain))
 	}
 
-	if t.Metadata != "" {
+	if strings.TrimSpace(t.Metadata) != "" {
 		t.opts = append(t.opts, config.WithMetadata(t.Metadata))
 	}
 
@@ -73,6 +82,24 @@ func (t *TLS) provisionOpts() error {
 		t.opts = append(t.opts, config.WithDenyCIDRString(t.DenyCIDR...))
 	}
 
+	if strings.TrimSpace(t.CertPEM) != "" && strings.TrimSpace(t.KeyPEM) == "" { // key not set
+		return errors.New("provisioning tls termination - key is required when cert is set.")
+	} else if strings.TrimSpace(t.CertPEM) == "" && strings.TrimSpace(t.KeyPEM) != "" { // cert not set
+		return errors.New("provisioning tls_termination - - key is required when cert is set.")
+	} else if strings.TrimSpace(t.CertPEM) != "" && strings.TrimSpace(t.KeyPEM) != "" { // both are set.
+		certBytes, err := os.ReadFile(t.CertPEM)
+		if err != nil {
+			return fmt.Errorf("provisioning tls_termination - failed to read CertPem file: %v", err)
+		}
+		keyBytes, err := os.ReadFile(t.KeyPEM)
+		if err != nil {
+			return fmt.Errorf("provisioning tls_termination - failed to read KeyPem file: %v", err)
+		}
+
+		t.opts = append(t.opts, config.WithTLSTermination(config.WithTLSTerminationKeyPair(certBytes, keyBytes)))
+
+	}
+
 	return nil
 }
 
@@ -81,6 +108,8 @@ func (t *TLS) doReplace() {
 	replaceableFields := []*string{
 		&t.Metadata,
 		&t.Domain,
+		&t.CertPEM,
+		&t.KeyPEM,
 	}
 
 	for _, field := range replaceableFields {
@@ -100,6 +129,7 @@ func (t *TLS) doReplace() {
 
 		t.DenyCIDR[index] = actual
 	}
+
 }
 
 // convert to ngrok's Tunnel type
@@ -122,6 +152,14 @@ func (t *TLS) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 			case "metadata":
 				if !d.AllArgs(&t.Metadata) {
+					return d.ArgErr()
+				}
+			case "cert":
+				if !d.AllArgs(&t.CertPEM) {
+					return d.ArgErr()
+				}
+			case "key":
+				if !d.AllArgs(&t.KeyPEM) {
 					return d.ArgErr()
 				}
 			case "allow":
