@@ -1,6 +1,8 @@
 package ngroklistener
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -896,6 +898,89 @@ func TestHTTPWebhookVerification(t *testing.T) {
 				}
 			}`,
 			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPMTLS(t *testing.T) {
+
+	certDer, _ := pem.Decode(ngrokCA)
+	cert, err := x509.ParseCertificate(certDer.Bytes)
+	if err != nil {
+		t.Errorf("failed to parse certificate: %v", err)
+	}
+
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.MutualTLSCAs)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "with path",
+			caddyInput: `http {
+				mutual_tls_cas testdata/ngrok.ca.crt
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.MutualTLSCAs, []string{"testdata/ngrok.ca.crt"})
+			},
+			expectedOpts: config.HTTPEndpoint(config.WithMutualTLSCA(cert)),
+		},
+		{
+			name: "with multi directives",
+			caddyInput: `http {
+				mutual_tls_cas testdata/ngrok.ca.crt
+				mutual_tls_cas testdata/ngrok2.ca.crt
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.MutualTLSCAs, []string{
+					"testdata/ngrok.ca.crt", "testdata/ngrok2.ca.crt",
+				})
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithMutualTLSCA(cert, cert),
+			),
+		},
+		{
+			name: "no-args",
+			caddyInput: `http {
+				mutual_tls_cas
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "too-many-args",
+			caddyInput: `http {
+				mutual_tls_cas testdata/ngrok.ca.crt testdata/ngrok2.ca.crt
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "non-exist-path",
+			caddyInput: `http {
+				mutual_tls_cas testdata/bogus.ca.crt
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.MutualTLSCAs, []string{"testdata/bogus.ca.crt"})
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "empty-cert",
+			caddyInput: `http {
+				mutual_tls_cas testdata/empty.ca.crt
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.MutualTLSCAs, []string{"testdata/empty.ca.crt"})
+			},
+			expectProvisionErr: true,
 		},
 	}
 
