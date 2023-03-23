@@ -40,11 +40,10 @@ func (gt genericTest[C]) run(t *testing.T) {
 		if gt.expectUnmarshalErr {
 			require.NotNil(t, err)
 			return
-		} else {
-			require.Nil(t, err)
-			if assert.NotNil(t, gt.expectConfig) {
-				gt.expectConfig(t, tun)
-			}
+		}
+		require.Nil(t, err)
+		if assert.NotNil(t, gt.expectConfig) {
+			gt.expectConfig(t, tun)
 		}
 
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.Background()})
@@ -55,11 +54,10 @@ func (gt genericTest[C]) run(t *testing.T) {
 		if gt.expectProvisionErr {
 			require.NotNil(t, err)
 			return
-		} else {
-			require.Nil(t, err)
-			ngrokTun := tun.NgrokTunnel()
-			require.Equal(t, gt.expectedOpts, ngrokTun)
 		}
+		require.Nil(t, err)
+		ngrokTun := tun.NgrokTunnel()
+		require.Equal(t, gt.expectedOpts, ngrokTun)
 
 	})
 }
