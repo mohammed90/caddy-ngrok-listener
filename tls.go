@@ -47,9 +47,7 @@ func (*TLS) CaddyModule() caddy.ModuleInfo {
 func (t *TLS) Provision(ctx caddy.Context) error {
 	t.l = ctx.Logger()
 
-	if err := t.doReplace(); err != nil {
-		return fmt.Errorf("loading doing replacements: %v", err)
-	}
+	t.doReplace()
 
 	if err := t.provisionOpts(); err != nil {
 		return fmt.Errorf("provisioning tls tunnel opts: %v", err)
@@ -78,7 +76,7 @@ func (t *TLS) provisionOpts() error {
 	return nil
 }
 
-func (t *TLS) doReplace() error {
+func (t *TLS) doReplace() {
 	repl := caddy.NewReplacer()
 	replaceableFields := []*string{
 		&t.Metadata,
@@ -91,27 +89,17 @@ func (t *TLS) doReplace() error {
 		*field = actual
 	}
 
-	replacedAllowCIDR := make([]string, len(t.AllowCIDR))
-
 	for index, cidr := range t.AllowCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedAllowCIDR[index] = actual
+		t.AllowCIDR[index] = actual
 	}
-
-	t.AllowCIDR = replacedAllowCIDR
-
-	replacedDenyCIDR := make([]string, len(t.DenyCIDR))
 
 	for index, cidr := range t.DenyCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedDenyCIDR[index] = actual
+		t.DenyCIDR[index] = actual
 	}
-
-	t.DenyCIDR = replacedDenyCIDR
-
-	return nil
 }
 
 // convert to ngrok's Tunnel type
@@ -145,7 +133,7 @@ func (t *TLS) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return err
 				}
 			default:
-				return d.ArgErr()
+				return d.Errf("unrecognized subdirective %s", subdirective)
 			}
 		}
 	}

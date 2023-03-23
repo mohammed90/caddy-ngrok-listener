@@ -91,9 +91,7 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("loading ngrok tunnel module: %v", err)
 	}
 
-	if err = n.doReplace(); err != nil {
-		return fmt.Errorf("loading doing replacements: %v", err)
-	}
+	n.doReplace()
 
 	if err = n.provisionOpts(); err != nil {
 		return fmt.Errorf("provisioning ngrok opts: %v", err)
@@ -130,7 +128,7 @@ func (n *Ngrok) provisionOpts() error {
 	return nil
 }
 
-func (n *Ngrok) doReplace() error {
+func (n *Ngrok) doReplace() {
 	repl := caddy.NewReplacer()
 	replaceableFields := []*string{
 		&n.AuthToken,
@@ -143,8 +141,6 @@ func (n *Ngrok) doReplace() error {
 		actual := repl.ReplaceKnown(*field, "")
 		*field = actual
 	}
-
-	return nil
 }
 
 func (*Ngrok) CaddyModule() caddy.ModuleInfo {
@@ -210,7 +206,7 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return err
 				}
 			default:
-				return d.ArgErr()
+				return d.Errf("unrecognized subdirective %s", subdirective)
 			}
 		}
 	}

@@ -1,106 +1,688 @@
 package ngroklistener
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/stretchr/testify/require"
+	"golang.ngrok.com/ngrok/config"
 )
 
 func TestParseHTTP(t *testing.T) {
-	tests := []struct {
-		input     string
-		shouldErr bool
-		expected  HTTP
-	}{
-		{`http {
-			metadata test
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			domain test.domain.com
-		}`, false, HTTP{Metadata: "test", Domain: "test.domain.com", AllowCIDR: []string{}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			domain
-		}`, true, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			domain too manyargs
-		}`, true, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			allow 1
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{"1"}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			allow 1 2 3
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{"1", "2", "3"}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			allow
-		}`, true, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			deny 1
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{"1"}}},
-		{`http {
-			metadata test
-			deny 1 2 3
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{"1", "2", "3"}}},
-		{`http {
-			metadata test
-			deny
-		}`, true, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}}},
-		{`http {
-			metadata test
-			compression
-			websocket_tcp_converter
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: true, WebsocketTCPConverter: true}},
-		{`http {
-			metadata test
-			compression true
-			websocket_tcp_converter true
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: true, WebsocketTCPConverter: true}},
-		{`http {
-			metadata test
-			compression false
-			websocket_tcp_converter false
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: false, WebsocketTCPConverter: false}},
-		{`http {
-			metadata test
-			compression off
-			websocket_tcp_converter off
-		}`, false, HTTP{Metadata: "test", AllowCIDR: []string{}, DenyCIDR: []string{}, Compression: false, WebsocketTCPConverter: false}},
+	cases := genericTestCases[*HTTP]{
+
+		{
+			name: "default",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.NotNil(t, actual)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "http takes no args",
+			caddyInput: `http arg1 {
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "http unsupported directive",
+			caddyInput: `http {
+				directive
+			}`,
+			expectUnmarshalErr: true,
+		},
 	}
 
-	for i, test := range tests {
-		d := caddyfile.NewTestDispenser(test.input)
-		tun := HTTP{}
-		err := tun.UnmarshalCaddyfile(d)
-		tun.Provision(caddy.Context{})
+	cases.runAll(t)
 
-		if test.shouldErr {
-			if err == nil {
-				t.Errorf("Test %v: Expected error but found nil", i)
-			}
-		} else {
-			if err != nil {
-				t.Errorf("Test %v: Expected no error but found error: %v", i, err)
-			} else if test.expected.Metadata != tun.Metadata {
-				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.Metadata, test.expected.Metadata)
-			} else if test.expected.Domain != tun.Domain {
-				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.Domain, test.expected.Domain)
-			} else if !reflect.DeepEqual(test.expected.AllowCIDR, tun.AllowCIDR) {
-				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.AllowCIDR, test.expected.AllowCIDR)
-			} else if !reflect.DeepEqual(test.expected.DenyCIDR, tun.DenyCIDR) {
-				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.DenyCIDR, test.expected.DenyCIDR)
-			} else if test.expected.Compression != tun.Compression {
-				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.Compression, test.expected.Compression)
-			} else if test.expected.WebsocketTCPConverter != tun.WebsocketTCPConverter {
-				t.Errorf("Test %v: Created HTTP (\n%#v\n) does not match expected (\n%#v\n)", i, tun.WebsocketTCPConverter, test.expected.WebsocketTCPConverter)
-			}
-		}
+}
+
+func TestHTTPBasicAuth(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "empty",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Nil(t, actual.BasicAuth)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "single-inline",
+			caddyInput: `http {
+				basic_auth foo barbarbar
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				expected := []basicAuthCred{
+					{"foo", "barbarbar"},
+				}
+
+				require.Equal(t, expected, actual.BasicAuth)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithBasicAuth("foo", "barbarbar"),
+			),
+		},
+		{
+			name: "single-block",
+			caddyInput: `http {
+				basic_auth {
+					foo barbarbar
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				expected := []basicAuthCred{
+					{"foo", "barbarbar"},
+				}
+
+				require.Equal(t, expected, actual.BasicAuth)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithBasicAuth("foo", "barbarbar"),
+			),
+		},
+		{
+			name: "multiple",
+			caddyInput: `http {
+				basic_auth foo barbarbar
+				basic_auth spam eggsandcheese
+				basic_auth {
+					bar bazbazbaz
+					bam bambinos
+				}
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				expected := []basicAuthCred{
+					{"foo", "barbarbar"},
+					{"spam", "eggsandcheese"},
+					{"bar", "bazbazbaz"},
+					{"bam", "bambinos"},
+				}
+
+				require.Equal(t, expected, actual.BasicAuth)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithBasicAuth("foo", "barbarbar"),
+				config.WithBasicAuth("spam", "eggsandcheese"),
+				config.WithBasicAuth("bar", "bazbazbaz"),
+				config.WithBasicAuth("bam", "bambinos"),
+			),
+		},
+		{
+			name: "inline-password-too-short",
+			caddyInput: `http {
+				basic_auth foo bar
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "block-password-too-short",
+			caddyInput: `http {
+				basic_auth {
+					foo bar
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-inline-no-arg",
+			caddyInput: `http {
+				basic_auth
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-inline-no-password",
+			caddyInput: `http {
+				basic_auth foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-inline-too-many-arg",
+			caddyInput: `http {
+				basic_auth foo barbarbar bazbazbaz
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-block-no-arg",
+			caddyInput: `http {
+				basic_auth {
+
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-block-no-password",
+			caddyInput: `http {
+				basic_auth {
+					foo
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-block-too-many-arg",
+			caddyInput: `http {
+				basic_auth {
+					foo barbarbar bazbazbaz
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "basic_auth-no-combine",
+			caddyInput: `http {
+				basic_auth foo barbarbar {
+					spam eggsandcheese
+				}
+			}`,
+			expectUnmarshalErr: true,
+		},
 	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPCircuitBreaker(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Zero(t, actual.CircuitBreaker)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithCircuitBreaker(0),
+			),
+		},
+		{
+			name: "breakered",
+			caddyInput: `http {
+				circuit_breaker 0.5
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, actual.CircuitBreaker, 0.5)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithCircuitBreaker(0.5),
+			),
+		},
+		{
+			name: "breakered-no-arg",
+			caddyInput: `http {
+				circuit_breaker
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				circuit_breaker foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "breakered-too-many-arg",
+			caddyInput: `http {
+				circuit_breaker 0.3 0.7
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPCompression(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.False(t, actual.Compression)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "compressed-off",
+			caddyInput: `http {
+				compression off
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.False(t, actual.Compression)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "compressed-false",
+			caddyInput: `http {
+				compression false
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.False(t, actual.Compression)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "compressed-true",
+			caddyInput: `http {
+				compression true
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.True(t, actual.Compression)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithCompression(),
+			),
+		},
+		{
+			name: "compressed-no-arg",
+			caddyInput: `http {
+				compression
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.True(t, actual.Compression)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithCompression(),
+			),
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				compression foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "compressed-too-many-arg",
+			caddyInput: `http {
+				compression true false
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPWebsocketTCPConversion(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.False(t, actual.WebsocketTCPConverter)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "converted-off",
+			caddyInput: `http {
+				websocket_tcp_converter off
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.False(t, actual.WebsocketTCPConverter)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "converted-false",
+			caddyInput: `http {
+				websocket_tcp_converter false
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.False(t, actual.WebsocketTCPConverter)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "converted-true",
+			caddyInput: `http {
+				websocket_tcp_converter true
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.True(t, actual.WebsocketTCPConverter)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithWebsocketTCPConversion(),
+			),
+		},
+		{
+			name: "converted-no-arg",
+			caddyInput: `http {
+				websocket_tcp_converter
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.True(t, actual.WebsocketTCPConverter)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithWebsocketTCPConversion(),
+			),
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				websocket_tcp_converter foo
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "converted-too-many-arg",
+			caddyInput: `http {
+				websocket_tcp_converter true false
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPDomain(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.Domain)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "with domain",
+			caddyInput: `http {
+				domain foo.ngrok.io
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, actual.Domain, "foo.ngrok.io")
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithDomain("foo.ngrok.io"),
+			),
+		},
+		{
+			name: "domain-no-args",
+			caddyInput: `http {
+				domain
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "domain-too-many-args",
+			caddyInput: `http {
+				domain foo.ngrok.io test.ngrok.io
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPMetadata(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.Metadata)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "with metadata",
+			caddyInput: `http {
+				metadata test
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, actual.Metadata, "test")
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithMetadata("test"),
+			),
+		},
+		{
+			name: "metadata-single-arg-quotes",
+			caddyInput: `http {
+				metadata "Hello, World!"
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, actual.Metadata, "Hello, World!")
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithMetadata("Hello, World!"),
+			),
+		},
+		{
+			name: "metadata-no-args",
+			caddyInput: `http {
+				metadata
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "metadata-too-many-args",
+			caddyInput: `http {
+				metadata test test2
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPScheme(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "default",
+			caddyInput: `http {
+			}`,
+			expectUnmarshalErr: false,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.Scheme)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "set https",
+			caddyInput: `http {
+				scheme https
+			}`,
+			expectUnmarshalErr: false,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, "https", actual.Scheme)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithScheme("https"),
+			),
+		},
+		{
+			name: "set http",
+			caddyInput: `http {
+				scheme http
+			}`,
+			expectUnmarshalErr: false,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, "http", actual.Scheme)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithScheme("http"),
+			),
+		},
+		{
+			name: "set unrecognized",
+			caddyInput: `http {
+				scheme foo
+			}`,
+			expectUnmarshalErr: false,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Equal(t, "foo", actual.Scheme)
+			},
+			expectProvisionErr: true,
+		},
+		{
+			name: "scheme-no-arg",
+			caddyInput: `http {
+				scheme
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "scheme-too-many-arg",
+			caddyInput: `http {
+				scheme http https
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
+}
+
+func TestHTTPCIDRRestrictions(t *testing.T) {
+	cases := genericTestCases[*HTTP]{
+		{
+			name: "absent",
+			caddyInput: `http {
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.HTTPEndpoint(),
+		},
+		{
+			name: "allow",
+			caddyInput: `http {
+				allow 127.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8"),
+			),
+		},
+		{
+			name: "deny",
+			caddyInput: `http {
+				deny 127.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8"})
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8"),
+			),
+		},
+		{
+			name: "allow multi",
+			caddyInput: `http {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
+		},
+		{
+			name: "allow multi inline",
+			caddyInput: `http {
+				allow 127.0.0.0/8 10.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.DenyCIDR)
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
+		},
+		{
+			name: "deny multi",
+			caddyInput: `http {
+				deny 127.0.0.0/8
+				deny 10.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
+		},
+		{
+			name: "deny multi inline",
+			caddyInput: `http {
+				deny 127.0.0.0/8 10.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.Empty(t, actual.AllowCIDR)
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+			),
+		},
+		{
+			name: "allow and deny multi",
+			caddyInput: `http {
+				allow 127.0.0.0/8
+				allow 10.0.0.0/8
+				deny 192.0.0.0/8
+				deny 172.0.0.0/8
+			}`,
+			expectConfig: func(t *testing.T, actual *HTTP) {
+				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.ElementsMatch(t, actual.DenyCIDR, []string{"192.0.0.0/8", "172.0.0.0/8"})
+			},
+			expectedOpts: config.HTTPEndpoint(
+				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
+				config.WithDenyCIDRString("192.0.0.0/8", "172.0.0.0/8"),
+			),
+		},
+		{
+			name: "allow-no-args",
+			caddyInput: `http {
+				allow
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "deny-no-args",
+			caddyInput: `http {
+				deny
+			}`,
+			expectUnmarshalErr: true,
+		},
+	}
+
+	cases.runAll(t)
+
 }

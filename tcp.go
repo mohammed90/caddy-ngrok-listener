@@ -36,9 +36,7 @@ type TCP struct {
 func (t *TCP) Provision(ctx caddy.Context) error {
 	t.l = ctx.Logger()
 
-	if err := t.doReplace(); err != nil {
-		return fmt.Errorf("loading doing replacements: %v", err)
-	}
+	t.doReplace()
 
 	if err := t.provisionOpts(); err != nil {
 		return fmt.Errorf("provisioning tcp tunnel opts: %v", err)
@@ -48,7 +46,9 @@ func (t *TCP) Provision(ctx caddy.Context) error {
 }
 
 func (t *TCP) provisionOpts() error {
-	t.opts = append(t.opts, config.WithRemoteAddr(t.RemoteAddr))
+	if t.RemoteAddr != "" {
+		t.opts = append(t.opts, config.WithRemoteAddr(t.RemoteAddr))
+	}
 
 	if t.Metadata != "" {
 		t.opts = append(t.opts, config.WithMetadata(t.Metadata))
@@ -65,7 +65,7 @@ func (t *TCP) provisionOpts() error {
 	return nil
 }
 
-func (t *TCP) doReplace() error {
+func (t *TCP) doReplace() {
 	repl := caddy.NewReplacer()
 	replaceableFields := []*string{
 		&t.Metadata,
@@ -77,27 +77,17 @@ func (t *TCP) doReplace() error {
 		*field = actual
 	}
 
-	replacedAllowCIDR := make([]string, len(t.AllowCIDR))
-
 	for index, cidr := range t.AllowCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedAllowCIDR[index] = actual
+		t.AllowCIDR[index] = actual
 	}
-
-	t.AllowCIDR = replacedAllowCIDR
-
-	replacedDenyCIDR := make([]string, len(t.DenyCIDR))
 
 	for index, cidr := range t.DenyCIDR {
 		actual := repl.ReplaceKnown(cidr, "")
 
-		replacedDenyCIDR[index] = actual
+		t.DenyCIDR[index] = actual
 	}
-
-	t.DenyCIDR = replacedDenyCIDR
-
-	return nil
 }
 
 // convert to ngrok's Tunnel type
@@ -145,7 +135,7 @@ func (t *TCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 				t.DenyCIDR = append(t.DenyCIDR, d.RemainingArgs()...)
 			default:
-				return d.ArgErr()
+				return d.Errf("unrecognized subdirective %s", subdirective)
 			}
 		}
 	}
