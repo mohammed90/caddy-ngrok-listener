@@ -49,8 +49,8 @@ type HTTP struct {
 }
 
 type basicAuthCred struct {
-	username string
-	password string
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 // CaddyModule implements caddy.Module
@@ -117,7 +117,7 @@ func (t *HTTP) provisionOpts() error {
 	}
 
 	for _, basic_auth := range t.BasicAuth {
-		t.opts = append(t.opts, config.WithBasicAuth(basic_auth.username, basic_auth.password))
+		t.opts = append(t.opts, config.WithBasicAuth(basic_auth.Username, basic_auth.Password))
 	}
 
 	return nil
@@ -150,11 +150,11 @@ func (t *HTTP) doReplace() {
 	}
 
 	for i, basic_auth := range t.BasicAuth {
-		actualUsername := repl.ReplaceKnown(basic_auth.username, "")
+		actualUsername := repl.ReplaceKnown(basic_auth.Username, "")
 
-		actualPassword := repl.ReplaceKnown(basic_auth.password, "")
+		actualPassword := repl.ReplaceKnown(basic_auth.Password, "")
 
-		t.BasicAuth[i] = basicAuthCred{username: actualUsername, password: actualPassword}
+		t.BasicAuth[i] = basicAuthCred{Username: actualUsername, Password: actualPassword}
 
 	}
 }
@@ -297,7 +297,7 @@ func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 			return d.Err("password must be at least eight characters.")
 		}
 
-		t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
+		t.BasicAuth = append(t.BasicAuth, basicAuthCred{Username: username, Password: password})
 
 	}
 	for nesting := d.Nesting(); d.NextBlock(nesting); { // block of basic_auth
@@ -317,7 +317,7 @@ func (t *HTTP) unmarshalBasicAuth(d *caddyfile.Dispenser) error {
 			return d.Err("password must be at least eight characters.")
 		}
 
-		t.BasicAuth = append(t.BasicAuth, basicAuthCred{username: username, password: password})
+		t.BasicAuth = append(t.BasicAuth, basicAuthCred{Username: username, Password: password})
 	}
 
 	if !foundBasicAuth {
