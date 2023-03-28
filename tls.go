@@ -65,11 +65,11 @@ func (t *TLS) provisionOpts() error {
 		t.opts = append(t.opts, config.WithMetadata(t.Metadata))
 	}
 
-	if t.AllowCIDR != nil {
+	if len(t.AllowCIDR) > 0 {
 		t.opts = append(t.opts, config.WithAllowCIDRString(t.AllowCIDR...))
 	}
 
-	if t.DenyCIDR != nil {
+	if len(t.DenyCIDR) > 0 {
 		t.opts = append(t.opts, config.WithDenyCIDRString(t.DenyCIDR...))
 	}
 
