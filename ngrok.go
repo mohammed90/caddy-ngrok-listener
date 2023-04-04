@@ -268,6 +268,10 @@ func (n *Ngrok) unmarshalTunnel(d *caddyfile.Dispenser) error {
 	return nil
 }
 
+func quoteString(v string) string {
+	return `"` + v + `"`
+}
+
 var (
 	_ caddy.Module          = (*Ngrok)(nil)
 	_ caddy.Provisioner     = (*Ngrok)(nil)

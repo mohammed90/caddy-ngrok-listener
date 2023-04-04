@@ -1,6 +1,7 @@
 package ngroklistener
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -18,32 +19,11 @@ func init() {
 type HTTP struct {
 	opts []config.HTTPEndpointOption
 
-	// Rejects connections that do not match the given CIDRs
-	AllowCIDR []string `json:"allow_cidr,omitempty"`
-
-	// Rejects connections that match the given CIDRs and allows all other CIDRs.
-	DenyCIDR []string `json:"deny_cidr,omitempty"`
-
-	// the domain for this edge.
-	Domain string `json:"domain,omitempty"`
-
-	// opaque metadata string for this tunnel.
-	Metadata string `json:"metadata,omitempty"`
-
-	// sets the scheme for this edge.
-	Scheme string `json:"scheme,omitempty"`
-
-	// the 5XX response ratio at which the ngrok edge will stop sending requests to this tunnel.
-	CircuitBreaker float64 `json:"circuit_breaker,omitempty"`
-
-	// enables gzip compression.
-	Compression bool `json:"compression,omitempty"`
-
-	// enables the websocket-to-tcp converter.
-	WebsocketTCPConverter bool `json:"websocket_tcp_converter,omitempty"`
-
 	// A map of basicauth, username and password value pairs for this tunnel.
 	BasicAuth []basicAuthCred `json:"basic_auth,omitempty"`
+
+	// key-value of the HTTP tunnel options to be enabled and configured
+	Options caddy.ModuleMap `json:"options" caddy:"namespace=caddy.listeners.ngrok.tunnels.http.options"`
 
 	l *zap.Logger
 }
@@ -69,6 +49,16 @@ func (t *HTTP) Provision(ctx caddy.Context) error {
 
 	t.doReplace()
 
+	mods, err := ctx.LoadModule(t, "Options")
+	if err != nil {
+		return err
+	}
+	for _, v := range mods.(map[string]any) {
+		if m, ok := v.(HTTPOptioner); ok && m.HTTPOption() != nil {
+			t.opts = append(t.opts, m.HTTPOption())
+		}
+	}
+
 	if err := t.provisionOpts(); err != nil {
 		return fmt.Errorf("provisioning http tunnel opts: %v", err)
 	}
@@ -77,45 +67,6 @@ func (t *HTTP) Provision(ctx caddy.Context) error {
 }
 
 func (t *HTTP) provisionOpts() error {
-	if t.Domain != "" {
-		t.opts = append(t.opts, config.WithDomain(t.Domain))
-	}
-
-	if t.Metadata != "" {
-		t.opts = append(t.opts, config.WithMetadata(t.Metadata))
-	}
-
-	if len(t.AllowCIDR) > 0 {
-		t.opts = append(t.opts, config.WithAllowCIDRString(t.AllowCIDR...))
-	}
-
-	if len(t.DenyCIDR) > 0 {
-		t.opts = append(t.opts, config.WithDenyCIDRString(t.DenyCIDR...))
-	}
-
-	if t.CircuitBreaker != 0 {
-		t.opts = append(t.opts, config.WithCircuitBreaker(t.CircuitBreaker))
-	}
-
-	if t.Compression {
-		t.opts = append(t.opts, config.WithCompression())
-	}
-
-	if t.Scheme != "" {
-		switch t.Scheme {
-		case "http":
-			t.opts = append(t.opts, config.WithScheme(config.SchemeHTTP))
-		case "https":
-			t.opts = append(t.opts, config.WithScheme(config.SchemeHTTPS))
-		default:
-			return fmt.Errorf("unrecognized http tunnel scheme %s", t.Scheme)
-		}
-	}
-
-	if t.WebsocketTCPConverter {
-		t.opts = append(t.opts, config.WithWebsocketTCPConversion())
-	}
-
 	for _, basic_auth := range t.BasicAuth {
 		t.opts = append(t.opts, config.WithBasicAuth(basic_auth.Username, basic_auth.Password))
 	}
@@ -125,29 +76,6 @@ func (t *HTTP) provisionOpts() error {
 
 func (t *HTTP) doReplace() {
 	repl := caddy.NewReplacer()
-	replaceableFields := []*string{
-		&t.Metadata,
-		&t.Domain,
-		&t.Scheme,
-	}
-
-	for _, field := range replaceableFields {
-		actual := repl.ReplaceKnown(*field, "")
-
-		*field = actual
-	}
-
-	for index, cidr := range t.AllowCIDR {
-		actual := repl.ReplaceKnown(cidr, "")
-
-		t.AllowCIDR[index] = actual
-	}
-
-	for index, cidr := range t.DenyCIDR {
-		actual := repl.ReplaceKnown(cidr, "")
-
-		t.DenyCIDR[index] = actual
-	}
 
 	for i, basic_auth := range t.BasicAuth {
 		actualUsername := repl.ReplaceKnown(basic_auth.Username, "")
@@ -165,6 +93,9 @@ func (t *HTTP) NgrokTunnel() config.Tunnel {
 }
 
 func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	if t.Options == nil {
+		t.Options = make(caddy.ModuleMap)
+	}
 	for d.Next() {
 		if d.NextArg() {
 			return d.ArgErr()
@@ -172,15 +103,18 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 		for nesting := d.Nesting(); d.NextBlock(nesting); {
 			subdirective := d.Val()
+			var val string
 			switch subdirective {
 			case "domain":
-				if !d.AllArgs(&t.Domain) {
+				if !d.AllArgs(&val) {
 					return d.ArgErr()
 				}
+				t.Options["domain"] = json.RawMessage(quoteString(val))
 			case "metadata":
-				if !d.AllArgs(&t.Metadata) {
+				if !d.AllArgs(&val) {
 					return d.ArgErr()
 				}
+				t.Options["metadata"] = json.RawMessage(quoteString(val))
 			case "allow":
 				if err := t.unmarshalAllowCidr(d); err != nil {
 					return err
@@ -198,9 +132,10 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return err
 				}
 			case "scheme":
-				if !d.AllArgs(&t.Scheme) {
+				if !d.AllArgs(&val) {
 					return d.ArgErr()
 				}
+				t.Options["scheme"] = json.RawMessage(quoteString(val))
 			case "websocket_tcp_converter":
 				if err := t.unmarshalWebsocketTCPConverter(d); err != nil {
 					return err
@@ -210,7 +145,7 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return err
 				}
 			default:
-				return d.Errf("unrecognized subdirective %s", subdirective)
+				return d.Errf("unrecognized subdirective: %s", subdirective)
 			}
 		}
 	}
@@ -221,15 +156,16 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 func (t *HTTP) unmarshalWebsocketTCPConverter(d *caddyfile.Dispenser) error {
 	var value string
 	if !d.Args(&value) { // no arg default is true
-		t.WebsocketTCPConverter = true
+		t.Options["websocket_tcp_conversion"] = json.RawMessage("true")
 	} else if value == "off" {
-		t.WebsocketTCPConverter = false
+		t.Options["websocket_tcp_conversion"] = json.RawMessage("false")
 	} else { // arg was given check it
 		var err error
-		t.WebsocketTCPConverter, err = strconv.ParseBool(value)
+		_, err = strconv.ParseBool(value)
 		if err != nil {
 			return d.Errf(`parsing websocket_tcp_converter value %+v: %w`, value, err)
 		}
+		t.Options["websocket_tcp_conversion"] = json.RawMessage(value)
 	}
 
 	return nil
@@ -238,15 +174,16 @@ func (t *HTTP) unmarshalWebsocketTCPConverter(d *caddyfile.Dispenser) error {
 func (t *HTTP) unmarshalCompression(d *caddyfile.Dispenser) error {
 	var value string
 	if !d.Args(&value) { // no arg default is true
-		t.Compression = true
+		t.Options["compression"] = json.RawMessage(`true`)
 	} else if value == "off" {
-		t.Compression = false
+		t.Options["compression"] = json.RawMessage(`false`)
 	} else { // arg was given check it
 		var err error
-		t.Compression, err = strconv.ParseBool(value)
+		_, err = strconv.ParseBool(value)
 		if err != nil {
 			return d.Errf(`parsing compression value %+v: %w`, value, err)
 		}
+		t.Options["compression"] = json.RawMessage(value)
 	}
 
 	return nil
@@ -256,9 +193,12 @@ func (t *HTTP) unmarshalAllowCidr(d *caddyfile.Dispenser) error {
 	if d.CountRemainingArgs() == 0 {
 		return d.ArgErr()
 	}
+	bs, err := json.Marshal(d.RemainingArgs())
+	if err != nil {
+		return err
+	}
 
-	t.AllowCIDR = append(t.AllowCIDR, d.RemainingArgs()...)
-
+	t.Options["allow_cidr"] = json.RawMessage(bs)
 	return nil
 }
 
@@ -266,9 +206,11 @@ func (t *HTTP) unmarshalDenyCidr(d *caddyfile.Dispenser) error {
 	if d.CountRemainingArgs() == 0 {
 		return d.ArgErr()
 	}
-
-	t.DenyCIDR = append(t.DenyCIDR, d.RemainingArgs()...)
-
+	bs, err := json.Marshal(d.RemainingArgs())
+	if err != nil {
+		return err
+	}
+	t.Options["deny_cidr"] = json.RawMessage(bs)
 	return nil
 }
 
@@ -333,13 +275,11 @@ func (t *HTTP) unmarshalCircuitBreaker(d *caddyfile.Dispenser) error {
 		return d.ArgErr()
 	}
 
-	circuitBreaker, err := strconv.ParseFloat(ratio, 64)
+	_, err := strconv.ParseFloat(ratio, 64)
 	if err != nil {
 		return d.ArgErr()
 	}
-
-	t.CircuitBreaker = circuitBreaker
-
+	t.Options["circuit_breaker"] = json.RawMessage(ratio)
 	return nil
 }
 

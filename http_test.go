@@ -1,8 +1,10 @@
 package ngroklistener
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/caddyserver/caddy/v2"
 	"github.com/stretchr/testify/require"
 	"golang.ngrok.com/ngrok/config"
 )
@@ -196,7 +198,7 @@ func TestHTTPCircuitBreaker(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Zero(t, actual.CircuitBreaker)
+				require.Zero(t, actual.Options["circuit_breaker"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithCircuitBreaker(0),
@@ -208,7 +210,7 @@ func TestHTTPCircuitBreaker(t *testing.T) {
 				circuit_breaker 0.5
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, actual.CircuitBreaker, 0.5)
+				require.Equal(t, caddy.ModuleMap{"circuit_breaker": json.RawMessage(`0.5`)}, actual.Options)
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithCircuitBreaker(0.5),
@@ -248,7 +250,7 @@ func TestHTTPCompression(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.False(t, actual.Compression)
+				require.Zero(t, actual.Options["compression"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -258,7 +260,7 @@ func TestHTTPCompression(t *testing.T) {
 				compression off
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.False(t, actual.Compression)
+				require.Equal(t, json.RawMessage(`false`), actual.Options["compression"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -268,7 +270,7 @@ func TestHTTPCompression(t *testing.T) {
 				compression false
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.False(t, actual.Compression)
+				require.Equal(t, json.RawMessage(`false`), actual.Options["compression"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -278,7 +280,7 @@ func TestHTTPCompression(t *testing.T) {
 				compression true
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.True(t, actual.Compression)
+				require.Equal(t, json.RawMessage(`true`), actual.Options["compression"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithCompression(),
@@ -290,7 +292,7 @@ func TestHTTPCompression(t *testing.T) {
 				compression
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.True(t, actual.Compression)
+				require.Equal(t, json.RawMessage(`true`), actual.Options["compression"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithCompression(),
@@ -323,7 +325,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.False(t, actual.WebsocketTCPConverter)
+				require.Zero(t, actual.Options["websocket_tcp_conversion"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -333,7 +335,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 				websocket_tcp_converter off
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.False(t, actual.WebsocketTCPConverter)
+				require.Equal(t, json.RawMessage(`false`), actual.Options["websocket_tcp_conversion"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -343,7 +345,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 				websocket_tcp_converter false
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.False(t, actual.WebsocketTCPConverter)
+				require.Equal(t, json.RawMessage(`false`), actual.Options["websocket_tcp_conversion"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -353,7 +355,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 				websocket_tcp_converter true
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.True(t, actual.WebsocketTCPConverter)
+				require.Equal(t, json.RawMessage(`true`), actual.Options["websocket_tcp_conversion"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithWebsocketTCPConversion(),
@@ -365,7 +367,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 				websocket_tcp_converter
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.True(t, actual.WebsocketTCPConverter)
+				require.Equal(t, json.RawMessage(`true`), actual.Options["websocket_tcp_conversion"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithWebsocketTCPConversion(),
@@ -398,7 +400,7 @@ func TestHTTPDomain(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.Domain)
+				require.Empty(t, actual.Options["domain"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -408,7 +410,7 @@ func TestHTTPDomain(t *testing.T) {
 				domain foo.ngrok.io
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, actual.Domain, "foo.ngrok.io")
+				require.Equal(t, json.RawMessage(`"foo.ngrok.io"`), actual.Options["domain"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithDomain("foo.ngrok.io"),
@@ -441,7 +443,7 @@ func TestHTTPMetadata(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.Metadata)
+				require.Empty(t, actual.Options["metadata"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -451,7 +453,7 @@ func TestHTTPMetadata(t *testing.T) {
 				metadata test
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, actual.Metadata, "test")
+				require.Equal(t, json.RawMessage(quoteString("test")), actual.Options["metadata"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithMetadata("test"),
@@ -463,7 +465,7 @@ func TestHTTPMetadata(t *testing.T) {
 				metadata "Hello, World!"
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, actual.Metadata, "Hello, World!")
+				require.Equal(t, json.RawMessage(quoteString("Hello, World!")), actual.Options["metadata"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithMetadata("Hello, World!"),
@@ -497,7 +499,7 @@ func TestHTTPScheme(t *testing.T) {
 			}`,
 			expectUnmarshalErr: false,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.Scheme)
+				require.Empty(t, actual.Options["scheme"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -508,7 +510,7 @@ func TestHTTPScheme(t *testing.T) {
 			}`,
 			expectUnmarshalErr: false,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, "https", actual.Scheme)
+				require.Equal(t, json.RawMessage(`"https"`), actual.Options["scheme"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithScheme("https"),
@@ -521,7 +523,7 @@ func TestHTTPScheme(t *testing.T) {
 			}`,
 			expectUnmarshalErr: false,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, "http", actual.Scheme)
+				require.Equal(t, json.RawMessage(`"http"`), actual.Options["scheme"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithScheme("http"),
@@ -534,7 +536,7 @@ func TestHTTPScheme(t *testing.T) {
 			}`,
 			expectUnmarshalErr: false,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Equal(t, "foo", actual.Scheme)
+				require.Equal(t, json.RawMessage(`"foo"`), actual.Options["scheme"])
 			},
 			expectProvisionErr: true,
 		},
@@ -565,8 +567,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 			caddyInput: `http {
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.AllowCIDR)
-				require.Empty(t, actual.DenyCIDR)
+				require.Empty(t, actual.Options["allow_cidr"])
+				require.Empty(t, actual.Options["deny_cidr"])
 			},
 			expectedOpts: config.HTTPEndpoint(),
 		},
@@ -576,8 +578,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				allow 127.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8"})
-				require.Empty(t, actual.DenyCIDR)
+				require.JSONEq(t, `["127.0.0.0/8"]`, string(actual.Options["allow_cidr"]))
+				require.Empty(t, actual.Options["deny_cidr"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithAllowCIDRString("127.0.0.0/8"),
@@ -589,8 +591,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				deny 127.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.AllowCIDR)
-				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8"})
+				require.Empty(t, actual.Options["allow_cidr"])
+				require.JSONEq(t, `["127.0.0.0/8"]`, string(actual.Options["deny_cidr"]))
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithDenyCIDRString("127.0.0.0/8"),
@@ -603,8 +605,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				allow 10.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
-				require.Empty(t, actual.DenyCIDR)
+				require.JSONEq(t, `["127.0.0.0/8", "10.0.0.0/8"]`, string(actual.Options["allow_cidr"]))
+				require.Empty(t, actual.Options["deny_cidr"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
@@ -616,8 +618,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				allow 127.0.0.0/8 10.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
-				require.Empty(t, actual.DenyCIDR)
+				require.JSONEq(t, `["127.0.0.0/8", "10.0.0.0/8"]`, string(actual.Options["allow_cidr"]))
+				require.Empty(t, actual.Options["deny_cidr"])
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
@@ -630,8 +632,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				deny 10.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.AllowCIDR)
-				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.Options["allow_cidr"])
+				require.JSONEq(t, `["127.0.0.0/8", "10.0.0.0/8"]`, string(actual.Options["deny_cidr"]))
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
@@ -643,8 +645,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				deny 127.0.0.0/8 10.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.Empty(t, actual.AllowCIDR)
-				require.ElementsMatch(t, actual.DenyCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
+				require.Empty(t, actual.Options["allow_cidr"])
+				require.JSONEq(t, `["127.0.0.0/8", "10.0.0.0/8"]`, string(actual.Options["deny_cidr"]))
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithDenyCIDRString("127.0.0.0/8", "10.0.0.0/8"),
@@ -659,8 +661,8 @@ func TestHTTPCIDRRestrictions(t *testing.T) {
 				deny 172.0.0.0/8
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
-				require.ElementsMatch(t, actual.AllowCIDR, []string{"127.0.0.0/8", "10.0.0.0/8"})
-				require.ElementsMatch(t, actual.DenyCIDR, []string{"192.0.0.0/8", "172.0.0.0/8"})
+				require.JSONEq(t, `["127.0.0.0/8", "10.0.0.0/8"]`, string(actual.Options["allow_cidr"]))
+				require.JSONEq(t, `["192.0.0.0/8", "172.0.0.0/8"]`, string(actual.Options["deny_cidr"]))
 			},
 			expectedOpts: config.HTTPEndpoint(
 				config.WithAllowCIDRString("127.0.0.0/8", "10.0.0.0/8"),
