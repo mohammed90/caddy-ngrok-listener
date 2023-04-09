@@ -1,6 +1,7 @@
 package ngroklistener
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -193,12 +194,26 @@ func (t *HTTP) unmarshalAllowCidr(d *caddyfile.Dispenser) error {
 	if d.CountRemainingArgs() == 0 {
 		return d.ArgErr()
 	}
-	bs, err := json.Marshal(d.RemainingArgs())
-	if err != nil {
-		return err
+	args := d.RemainingArgs()
+	current, exists := t.Options["allow_cidr"]
+	if !exists {
+		bs, err := json.Marshal(args)
+		if err != nil {
+			return err
+		}
+		t.Options["allow_cidr"] = json.RawMessage(bs)
+		return nil
 	}
 
-	t.Options["allow_cidr"] = json.RawMessage(bs)
+	currentCIDR := bytes.Trim(current, "]")
+	buf := bytes.NewBuffer(currentCIDR)
+
+	buf.WriteString(",")
+	for _, v := range args {
+		buf.WriteString(`"` + v + `"`)
+	}
+	buf.WriteString("]")
+	t.Options["allow_cidr"] = json.RawMessage(buf.Bytes())
 	return nil
 }
 
@@ -206,11 +221,26 @@ func (t *HTTP) unmarshalDenyCidr(d *caddyfile.Dispenser) error {
 	if d.CountRemainingArgs() == 0 {
 		return d.ArgErr()
 	}
-	bs, err := json.Marshal(d.RemainingArgs())
-	if err != nil {
-		return err
+	args := d.RemainingArgs()
+	current, exists := t.Options["deny_cidr"]
+	if !exists {
+		bs, err := json.Marshal(args)
+		if err != nil {
+			return err
+		}
+		t.Options["deny_cidr"] = json.RawMessage(bs)
+		return nil
 	}
-	t.Options["deny_cidr"] = json.RawMessage(bs)
+
+	currentCIDR := bytes.Trim(current, "]")
+	buf := bytes.NewBuffer(currentCIDR)
+
+	buf.WriteString(",")
+	for _, v := range args {
+		buf.WriteString(`"` + v + `"`)
+	}
+	buf.WriteString("]")
+	t.Options["deny_cidr"] = json.RawMessage(buf.Bytes())
 	return nil
 }
 

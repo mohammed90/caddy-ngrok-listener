@@ -27,11 +27,11 @@ type HTTPOptioner interface {
 type AllowCIDR []string
 
 // Provision implements caddy.Provisioner
-func (ac AllowCIDR) Provision(ctx caddy.Context) error {
+func (ac *AllowCIDR) Provision(ctx caddy.Context) error {
 	repl := caddy.NewReplacer()
-	for index, cidr := range ac {
+	for index, cidr := range *ac {
 		actual := repl.ReplaceKnown(cidr, "")
-		ac[index] = actual
+		(*ac)[index] = actual
 	}
 	return nil
 }
@@ -41,7 +41,7 @@ func (AllowCIDR) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID: "caddy.listeners.ngrok.tunnels.http.options.allow_cidr",
 		New: func() caddy.Module {
-			return AllowCIDR{}
+			return new(AllowCIDR)
 		},
 	}
 }
@@ -56,11 +56,11 @@ func (a AllowCIDR) HTTPOption() config.HTTPEndpointOption {
 type DenyCIDR []string
 
 // Provision implements caddy.Provisioner
-func (dc DenyCIDR) Provision(caddy.Context) error {
+func (dc *DenyCIDR) Provision(caddy.Context) error {
 	repl := caddy.NewReplacer()
-	for index, cidr := range dc {
+	for index, cidr := range *dc {
 		actual := repl.ReplaceKnown(cidr, "")
-		dc[index] = actual
+		(*dc)[index] = actual
 	}
 	return nil
 }
@@ -226,10 +226,10 @@ func (hwtc HTTPWebsocketTCPConversion) HTTPOption() config.HTTPEndpointOption {
 }
 
 var _ caddy.Module = AllowCIDR{}
-var _ caddy.Provisioner = AllowCIDR{}
+var _ caddy.Provisioner = &AllowCIDR{}
 var _ HTTPOptioner = AllowCIDR{}
 var _ caddy.Module = DenyCIDR{}
-var _ caddy.Provisioner = DenyCIDR{}
+var _ caddy.Provisioner = &DenyCIDR{}
 var _ HTTPOptioner = DenyCIDR{}
 var _ caddy.Module = HTTPDomain("")
 var _ caddy.Provisioner = HTTPDomain("")
