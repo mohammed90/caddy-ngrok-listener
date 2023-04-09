@@ -24,7 +24,7 @@ type HTTP struct {
 	BasicAuth []basicAuthCred `json:"basic_auth,omitempty"`
 
 	// key-value of the HTTP tunnel options to be enabled and configured
-	Options caddy.ModuleMap `json:"options" caddy:"namespace=caddy.listeners.ngrok.tunnels.http.options"`
+	Options caddy.ModuleMap `json:"options,omitempty" caddy:"namespace=caddy.listeners.ngrok.tunnels.http.options"`
 
 	l *zap.Logger
 }

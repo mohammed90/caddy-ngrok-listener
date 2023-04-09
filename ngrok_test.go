@@ -276,7 +276,7 @@ func TestNgrokTunnel(t *testing.T) {
 			expectConfig: func(t *testing.T, actual *Ngrok) {
 				j, err := actual.TunnelRaw.MarshalJSON()
 				require.Nil(t, err)
-				require.JSONEq(t, string(j), `{"type":"http"}`)
+				require.JSONEq(t, `{"type":"http"}`, string(j))
 			},
 			// expected: Ngrok{AuthToken: "test", TunnelRaw: json.RawMessage(`{"type":"http"}`)},
 		},
