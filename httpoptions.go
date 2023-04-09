@@ -210,7 +210,7 @@ type HTTPWebsocketTCPConversion bool
 // CaddyModule implements caddy.Module
 func (HTTPWebsocketTCPConversion) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID: "caddy.listeners.ngrok.tunnels.http.options.websocket_tcp_converter",
+		ID: "caddy.listeners.ngrok.tunnels.http.options.websocket_tcp_conversion",
 		New: func() caddy.Module {
 			return new(HTTPWebsocketTCPConversion)
 		},

@@ -137,7 +137,7 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return d.ArgErr()
 				}
 				t.Options["scheme"] = json.RawMessage(quoteString(val))
-			case "websocket_tcp_converter":
+			case "websocket_tcp_conversion":
 				if err := t.unmarshalWebsocketTCPConverter(d); err != nil {
 					return err
 				}
@@ -164,7 +164,7 @@ func (t *HTTP) unmarshalWebsocketTCPConverter(d *caddyfile.Dispenser) error {
 		var err error
 		_, err = strconv.ParseBool(value)
 		if err != nil {
-			return d.Errf(`parsing websocket_tcp_converter value %+v: %w`, value, err)
+			return d.Errf(`parsing websocket_tcp_conversion value %+v: %w`, value, err)
 		}
 		t.Options["websocket_tcp_conversion"] = json.RawMessage(value)
 	}

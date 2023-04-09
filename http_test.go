@@ -332,7 +332,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		{
 			name: "converted-off",
 			caddyInput: `http {
-				websocket_tcp_converter off
+				websocket_tcp_conversion off
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
 				require.Equal(t, json.RawMessage(`false`), actual.Options["websocket_tcp_conversion"])
@@ -342,7 +342,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		{
 			name: "converted-false",
 			caddyInput: `http {
-				websocket_tcp_converter false
+				websocket_tcp_conversion false
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
 				require.Equal(t, json.RawMessage(`false`), actual.Options["websocket_tcp_conversion"])
@@ -352,7 +352,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		{
 			name: "converted-true",
 			caddyInput: `http {
-				websocket_tcp_converter true
+				websocket_tcp_conversion true
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
 				require.Equal(t, json.RawMessage(`true`), actual.Options["websocket_tcp_conversion"])
@@ -364,7 +364,7 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		{
 			name: "converted-no-arg",
 			caddyInput: `http {
-				websocket_tcp_converter
+				websocket_tcp_conversion
 			}`,
 			expectConfig: func(t *testing.T, actual *HTTP) {
 				require.Equal(t, json.RawMessage(`true`), actual.Options["websocket_tcp_conversion"])
@@ -376,14 +376,14 @@ func TestHTTPWebsocketTCPConversion(t *testing.T) {
 		{
 			name: "set unrecognized",
 			caddyInput: `http {
-				websocket_tcp_converter foo
+				websocket_tcp_conversion foo
 			}`,
 			expectUnmarshalErr: true,
 		},
 		{
 			name: "converted-too-many-arg",
 			caddyInput: `http {
-				websocket_tcp_converter true false
+				websocket_tcp_conversion true false
 			}`,
 			expectUnmarshalErr: true,
 		},
