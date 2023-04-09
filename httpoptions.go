@@ -85,9 +85,9 @@ func (a DenyCIDR) HTTPOption() config.HTTPEndpointOption {
 type HTTPDomain string
 
 // Provision implements caddy.Provisioner
-func (hd HTTPDomain) Provision(ctx caddy.Context) error {
+func (hd *HTTPDomain) Provision(ctx caddy.Context) error {
 	repl := caddy.NewReplacer()
-	hd = HTTPDomain(repl.ReplaceKnown(string(hd), ""))
+	*hd = HTTPDomain(repl.ReplaceKnown(string(*hd), ""))
 	return nil
 }
 
@@ -116,9 +116,9 @@ func (HTTPMetadata) CaddyModule() caddy.ModuleInfo {
 }
 
 // Provision implements caddy.Provisioner
-func (hm HTTPMetadata) Provision(caddy.Context) error {
+func (hm *HTTPMetadata) Provision(caddy.Context) error {
 	repl := caddy.NewReplacer()
-	hm = HTTPMetadata(repl.ReplaceKnown(string(hm), ""))
+	*hm = HTTPMetadata(repl.ReplaceKnown(string(*hm), ""))
 	return nil
 }
 
@@ -130,9 +130,9 @@ func (a HTTPMetadata) HTTPOption() config.HTTPEndpointOption {
 type HTTPScheme string
 
 // Provision implements caddy.Provisioner
-func (hs HTTPScheme) Provision(caddy.Context) error {
+func (hs *HTTPScheme) Provision(caddy.Context) error {
 	repl := caddy.NewReplacer()
-	hs = HTTPScheme(repl.ReplaceKnown(string(hs), ""))
+	*hs = HTTPScheme(repl.ReplaceKnown(string(*hs), ""))
 	return nil
 }
 
@@ -232,13 +232,13 @@ var _ caddy.Module = DenyCIDR{}
 var _ caddy.Provisioner = &DenyCIDR{}
 var _ HTTPOptioner = DenyCIDR{}
 var _ caddy.Module = HTTPDomain("")
-var _ caddy.Provisioner = HTTPDomain("")
+var _ caddy.Provisioner = new(HTTPDomain)
 var _ HTTPDomain = HTTPDomain("")
 var _ caddy.Module = HTTPMetadata("")
-var _ caddy.Provisioner = HTTPMetadata("")
+var _ caddy.Provisioner = new(HTTPMetadata)
 var _ HTTPOptioner = HTTPMetadata("")
 var _ caddy.Module = HTTPScheme("")
-var _ caddy.Provisioner = HTTPScheme("")
+var _ caddy.Provisioner = new(HTTPScheme)
 var _ caddy.Validator = HTTPScheme("")
 var _ HTTPOptioner = HTTPScheme("")
 var _ caddy.Module = HTTPCircuitBreaker(0)
