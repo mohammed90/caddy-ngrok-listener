@@ -2,6 +2,7 @@ package ngroklistener
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -21,30 +22,29 @@ type oidc struct {
 }
 
 func (o *oidc) Provision(caddy.Context) error {
-
 	o.doReplace()
 
-	if o.AllowEmails != nil {
+	if len(o.AllowEmails) > 0 {
 		o.opts = append(o.opts, config.WithAllowOIDCEmail(o.AllowEmails...))
 	}
 
-	if o.AllowDomains != nil {
+	if len(o.AllowDomains) > 0 {
 		o.opts = append(o.opts, config.WithAllowOIDCDomain(o.AllowDomains...))
 	}
 
-	if o.Scopes != nil {
+	if len(o.Scopes) > 0 {
 		o.opts = append(o.opts, config.WithOIDCScope(o.Scopes...))
 	}
 
-	if o.IssuerURL == "" {
+	if strings.TrimSpace(o.IssuerURL) == "" {
 		return errors.New("oidc `issuer_url` cannot be empty string")
 	}
 
-	if o.ClientID == "" {
+	if strings.TrimSpace(o.ClientID) == "" {
 		return errors.New("oidc `client_id` cannot be empty string")
 	}
 
-	if o.ClientSecret == "" {
+	if strings.TrimSpace(o.ClientSecret) == "" {
 		return errors.New("oidc `client_secret` cannot be empty string")
 	}
 
@@ -54,31 +54,25 @@ func (o *oidc) Provision(caddy.Context) error {
 }
 
 func (o *oidc) doReplace() {
-
 	repl := caddy.NewReplacer()
 
 	for index, email := range o.AllowEmails {
 		actual := repl.ReplaceKnown(email, "")
-
 		o.AllowEmails[index] = actual
 	}
 
 	for index, domain := range o.AllowDomains {
 		actual := repl.ReplaceKnown(domain, "")
-
 		o.AllowDomains[index] = actual
 	}
 
 	for index, scopes := range o.Scopes {
 		actual := repl.ReplaceKnown(scopes, "")
-
 		o.Scopes[index] = actual
 	}
 
 	o.IssuerURL = repl.ReplaceKnown(o.IssuerURL, "")
-
 	o.ClientID = repl.ReplaceKnown(o.ClientID, "")
-
 	o.ClientSecret = repl.ReplaceKnown(o.ClientSecret, "")
 
 }
