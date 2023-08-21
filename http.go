@@ -45,6 +45,8 @@ type HTTP struct {
 	// A map of basicauth, username and password value pairs for this tunnel.
 	BasicAuth []basicAuthCred `json:"basic_auth,omitempty"`
 
+	OIDC *oidc `json:"oidc,omitempty"`
+
 	l *zap.Logger
 }
 
@@ -69,14 +71,14 @@ func (t *HTTP) Provision(ctx caddy.Context) error {
 
 	t.doReplace()
 
-	if err := t.provisionOpts(); err != nil {
+	if err := t.provisionOpts(ctx); err != nil {
 		return fmt.Errorf("provisioning http tunnel opts: %v", err)
 	}
 
 	return nil
 }
 
-func (t *HTTP) provisionOpts() error {
+func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 	if t.Domain != "" {
 		t.opts = append(t.opts, config.WithDomain(t.Domain))
 	}
@@ -120,6 +122,14 @@ func (t *HTTP) provisionOpts() error {
 		t.opts = append(t.opts, config.WithBasicAuth(basic_auth.Username, basic_auth.Password))
 	}
 
+	if t.OIDC != nil {
+		err := t.OIDC.Provision(ctx)
+		if err != nil {
+			return fmt.Errorf("provisioning oidc: %v", err)
+		}
+		t.opts = append(t.opts, t.OIDC.OIDCOption)
+	}
+
 	return nil
 }
 
@@ -157,6 +167,7 @@ func (t *HTTP) doReplace() {
 		t.BasicAuth[i] = basicAuthCred{Username: actualUsername, Password: actualPassword}
 
 	}
+
 }
 
 // convert to ngrok's Tunnel type
@@ -207,6 +218,10 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 			case "basic_auth":
 				if err := t.unmarshalBasicAuth(d); err != nil {
+					return err
+				}
+			case "oidc":
+				if err := t.unmarshalOIDC(d); err != nil {
 					return err
 				}
 			default:
@@ -339,6 +354,18 @@ func (t *HTTP) unmarshalCircuitBreaker(d *caddyfile.Dispenser) error {
 	}
 
 	t.CircuitBreaker = circuitBreaker
+
+	return nil
+}
+
+func (t *HTTP) unmarshalOIDC(d *caddyfile.Dispenser) error {
+	oidc := oidc{}
+	err := oidc.UnmarshalCaddyfile(d)
+	if err != nil {
+		return d.Errf(`parsing oidc %w`, err)
+	}
+
+	t.OIDC = &oidc
 
 	return nil
 }

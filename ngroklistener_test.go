@@ -78,6 +78,7 @@ type genericNgrokTest[C NgrokTestConfig] struct {
 	expectUnmarshalErr bool
 	expectProvisionErr bool
 	expectConfig       func(t *testing.T, actual C)
+	expectedOptsFunc   func(t *testing.T, actual C)
 }
 
 type genericNgrokTestCases[C NgrokTestConfig] []genericNgrokTest[C]
@@ -110,6 +111,9 @@ func (gt genericNgrokTest[C]) run(t *testing.T) {
 			return
 		} else {
 			require.Nil(t, err)
+			if gt.expectedOptsFunc != nil {
+				gt.expectedOptsFunc(t, ngrok)
+			}
 		}
 
 	})
