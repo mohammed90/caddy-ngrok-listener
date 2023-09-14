@@ -18,7 +18,7 @@ Currently, the module does not support the extended ngrok options, e.g. allow/de
 	servers :80 {
 		listener_wrappers {
 			ngrok {
-				auth_token $NGROK_AUTH_TOKEN
+				authtoken $NGROK_AUTH_TOKEN
 				tunnel http {
 				}
 			}
