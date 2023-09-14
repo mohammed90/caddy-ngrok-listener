@@ -49,27 +49,27 @@ func TestNgrokAuthToken(t *testing.T) {
 			},
 		},
 		{
-			name: "set authtoken",
+			name: "set auth_token",
 			caddyInput: `ngrok {
-				authtoken foo
+				auth_token foo
 			}`,
 			expectConfig: func(t *testing.T, actual *Ngrok) {
 				require.Equal(t, actual.AuthToken, "foo")
 			},
 		},
 		{
-			name: "authtoken-no-arg",
+			name: "auth_token-no-arg",
 			caddyInput: `ngrok {
-				authtoken
+				auth_token
 			}`,
 			expectConfig: func(t *testing.T, actual *Ngrok) {
 				require.Empty(t, actual.AuthToken)
 			},
 		},
 		{
-			name: "authtoken-too-many-arg",
+			name: "auth_token-too-many-arg",
 			caddyInput: `ngrok {
-				authtoken foo bar
+				auth_token foo bar
 			}`,
 			expectUnmarshalErr: true,
 		},
@@ -283,7 +283,7 @@ func TestNgrokTunnel(t *testing.T) {
 		{
 			name: "load labeled",
 			caddyInput: `ngrok {
-				authtoken test
+				auth_token test
 				tunnel labeled {
 					label foo bar
 				}
