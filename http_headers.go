@@ -16,33 +16,8 @@ type httpHeaders struct {
 	Removed []string          `json:"removed,omitempty"`
 }
 
-func (h *httpHeaders) provisionRequestHeaders() ([]config.HTTPEndpointOption, error) {
-
-	for name, value := range h.Added {
-		h.opts = append(h.opts, config.WithRequestHeader(name, value))
-	}
-
-	for _, name := range h.Removed {
-		h.opts = append(h.opts, config.WithRemoveRequestHeader(name))
-	}
-
-	return h.opts, nil
-}
-
-func (h *httpHeaders) provisionResponseHeaders() ([]config.HTTPEndpointOption, error) {
-
-	for name, value := range h.Added {
-		h.opts = append(h.opts, config.WithResponseHeader(name, value))
-	}
-
-	for _, name := range h.Removed {
-		h.opts = append(h.opts, config.WithRemoveResponseHeader(name))
-	}
-
-	return h.opts, nil
-}
-
-func (h *httpHeaders) doReplace(repl *caddy.Replacer) error {
+func (h *httpHeaders) doReplace() {
+	repl := caddy.NewReplacer()
 
 	replacedAddedHeaders := make(map[string]string, len(h.Added))
 
@@ -66,10 +41,9 @@ func (h *httpHeaders) doReplace(repl *caddy.Replacer) error {
 
 	h.Removed = replacedRemovedHeaders
 
-	return nil
 }
 
-func (h *httpHeaders) unmarshalHeaders(d *caddyfile.Dispenser) error {
+func (h *httpHeaders) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		// first see if headers are in the initial line
 		var hasArgs bool
@@ -77,9 +51,10 @@ func (h *httpHeaders) unmarshalHeaders(d *caddyfile.Dispenser) error {
 			hasArgs = true
 			field := d.Val()
 			var value string
-			if !d.AllArgs(&value) {
-				d.ArgErr() // Additional arg Would be replacement if ngrok handled that
+			if d.CountRemainingArgs() > 1 {
+				return d.ArgErr() // Additional arg Would be replacement if ngrok handled that
 			}
+			d.Args(&value)
 			err := h.applyHeaderOp(
 				field,
 				value,
@@ -102,9 +77,10 @@ func (h *httpHeaders) unmarshalHeaders(d *caddyfile.Dispenser) error {
 			field = strings.TrimSuffix(field, ":")
 
 			var value string
-			if !d.AllArgs(&value) {
-				d.ArgErr() // Additional arg Would be replacement if ngrok handled that
+			if d.CountRemainingArgs() > 1 {
+				return d.ArgErr() // Additional arg Would be replacement if ngrok handled that
 			}
+			d.Args(&value)
 			err := h.applyHeaderOp(
 				field,
 				value,

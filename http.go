@@ -51,9 +51,9 @@ type HTTP struct {
 
 	WebhookVerification *webhookVerification `json:"webhook_verification,omitempty"`
 
-	RequestHeader *httpHeaders `json:"request_header,omitempty"`
+	RequestHeader *httpRequestHeaders `json:"request_header,omitempty"`
 
-	ResponseHeader *httpHeaders `json:"header,omitempty"`
+	ResponseHeader *httpResponseHeaders `json:"header,omitempty"`
 
 	l *zap.Logger
 }
@@ -154,28 +154,20 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		t.opts = append(t.opts, t.WebhookVerification.opt)
 	}
 
-	if t.WebhookVerification != nil {
-		err := t.WebhookVerification.Provision(ctx)
-		if err != nil {
-			return fmt.Errorf("provisioning webhook_verification: %v", err)
-		}
-		t.opts = append(t.opts, t.WebhookVerification.WebhookVerificationOption)
-	}
-
 	if t.RequestHeader != nil {
-		requestHeaderOpts, err := t.RequestHeader.provisionRequestHeaders()
+		err := t.RequestHeader.Provision(ctx)
 		if err != nil {
 			return fmt.Errorf("provisioning request_header: %v", err)
 		}
-		t.opts = append(t.opts, requestHeaderOpts...)
+		t.opts = append(t.opts, t.RequestHeader.opts...)
 	}
 
 	if t.ResponseHeader != nil {
-		responseHeaderOpts, err := t.ResponseHeader.provisionResponseHeaders()
+		err := t.ResponseHeader.Provision(ctx)
 		if err != nil {
 			return fmt.Errorf("provisioning header: %v", err)
 		}
-		t.opts = append(t.opts, responseHeaderOpts...)
+		t.opts = append(t.opts, t.ResponseHeader.opts...)
 	}
 
 	return nil
@@ -458,8 +450,8 @@ func (t *HTTP) unmarshalWebhookVerification(d *caddyfile.Dispenser) error {
 }
 
 func (t *HTTP) unmarshalRequestHeader(d *caddyfile.Dispenser) error {
-	requestHeader := httpHeaders{}
-	err := requestHeader.unmarshalHeaders(d)
+	requestHeader := httpRequestHeaders{}
+	err := requestHeader.UnmarshalCaddyfile(d)
 	if err != nil {
 		return d.Errf(`parsing request_header %w`, err)
 	}
@@ -470,8 +462,8 @@ func (t *HTTP) unmarshalRequestHeader(d *caddyfile.Dispenser) error {
 }
 
 func (t *HTTP) unmarshalResponseHeader(d *caddyfile.Dispenser) error {
-	responseHeader := httpHeaders{}
-	err := responseHeader.unmarshalHeaders(d)
+	responseHeader := httpResponseHeaders{}
+	err := responseHeader.UnmarshalCaddyfile(d)
 	if err != nil {
 		return d.Errf(`parsing header %w`, err)
 	}
