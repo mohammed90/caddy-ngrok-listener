@@ -131,7 +131,7 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		if err != nil {
 			return fmt.Errorf("provisioning oidc: %v", err)
 		}
-		t.opts = append(t.opts, t.OIDC.OIDCOption)
+		t.opts = append(t.opts, t.OIDC.opt)
 	}
 
 	if t.OAuth != nil {
@@ -139,7 +139,7 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		if err != nil {
 			return fmt.Errorf("provisioning oauth: %v", err)
 		}
-		t.opts = append(t.opts, t.OAuth.OAuthOption)
+		t.opts = append(t.opts, t.OAuth.opt)
 	}
 
 	if t.WebhookVerification != nil {
@@ -147,7 +147,7 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		if err != nil {
 			return fmt.Errorf("provisioning webhook_verification: %v", err)
 		}
-		t.opts = append(t.opts, t.WebhookVerification.WebhookVerificationOption)
+		t.opts = append(t.opts, t.WebhookVerification.opt)
 	}
 
 	return nil

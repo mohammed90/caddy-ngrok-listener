@@ -23,9 +23,9 @@ func TestOAuth(t *testing.T) {
 				require.Equal(t, actual.Provider, "google")
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oauth) {
-				require.NotNil(t, actual.OAuthOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OAuthOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithOAuth("google")),
 				)
 			},
@@ -48,9 +48,9 @@ func TestOAuth(t *testing.T) {
 				require.ElementsMatch(t, actual.AllowEmails, []string{"user1@gmail.com", "user2@gmail.com", "user3@gmail.com"})
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oauth) {
-				require.NotNil(t, actual.OAuthOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OAuthOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(
 						config.WithOAuth("google",
 							config.WithAllowOAuthDomain("ngrok.com", "google.com", "github.com", "facebook.com"),

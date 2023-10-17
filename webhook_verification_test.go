@@ -25,9 +25,9 @@ func TestWebhookVerification(t *testing.T) {
 				require.Equal(t, actual.Secret, "domoarigato")
 			},
 			expectedOptsFunc: func(t *testing.T, actual *webhookVerification) {
-				require.NotNil(t, actual.WebhookVerificationOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.WebhookVerificationOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithWebhookVerification("google", "domoarigato")),
 				)
 			},

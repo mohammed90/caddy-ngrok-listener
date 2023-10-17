@@ -10,8 +10,8 @@ import (
 )
 
 type oidc struct {
-	opts       []config.OIDCOption
-	OIDCOption config.HTTPEndpointOption
+	opts []config.OIDCOption
+	opt  config.HTTPEndpointOption
 
 	IssuerURL    string   `json:"issuer_url,omitempty"`
 	ClientID     string   `json:"client_id,omitempty"`
@@ -48,7 +48,7 @@ func (o *oidc) Provision(caddy.Context) error {
 		return errors.New("oidc `client_secret` cannot be empty string")
 	}
 
-	o.OIDCOption = config.WithOIDC(o.IssuerURL, o.ClientID, o.ClientSecret, o.opts...)
+	o.opt = config.WithOIDC(o.IssuerURL, o.ClientID, o.ClientSecret, o.opts...)
 
 	return nil
 }

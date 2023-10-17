@@ -10,8 +10,8 @@ import (
 )
 
 type oauth struct {
-	opts        []config.OAuthOption
-	OAuthOption config.HTTPEndpointOption
+	opts []config.OAuthOption
+	opt  config.HTTPEndpointOption
 
 	Provider     string   `json:"provider,omitempty"`
 	AllowEmails  []string `json:"allow_emails,omitempty"`
@@ -38,7 +38,7 @@ func (o *oauth) Provision(caddy.Context) error {
 		return errors.New("oauth `provider` cannot be empty string")
 	}
 
-	o.OAuthOption = config.WithOAuth(o.Provider, o.opts...)
+	o.opt = config.WithOAuth(o.Provider, o.opts...)
 
 	return nil
 }

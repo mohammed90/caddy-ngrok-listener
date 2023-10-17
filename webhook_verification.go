@@ -10,7 +10,7 @@ import (
 )
 
 type webhookVerification struct {
-	WebhookVerificationOption config.HTTPEndpointOption
+	opt config.HTTPEndpointOption
 
 	Provider string `json:"provider,omitempty"`
 	Secret   string `json:"secret,omitempty"`
@@ -28,7 +28,7 @@ func (wv *webhookVerification) Provision(caddy.Context) error {
 		return errors.New("webhookVerification `secret` cannot be empty string")
 	}
 
-	wv.WebhookVerificationOption = config.WithWebhookVerification(wv.Provider, wv.Secret)
+	wv.opt = config.WithWebhookVerification(wv.Provider, wv.Secret)
 
 	return nil
 }
