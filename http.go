@@ -49,6 +49,8 @@ type HTTP struct {
 
 	OAuth *oauth `json:"oauth,omitempty"`
 
+	WebhookVerification *webhookVerification `json:"webhook_verification,omitempty"`
+
 	l *zap.Logger
 }
 
@@ -129,7 +131,7 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		if err != nil {
 			return fmt.Errorf("provisioning oidc: %v", err)
 		}
-		t.opts = append(t.opts, t.OIDC.OIDCOption)
+		t.opts = append(t.opts, t.OIDC.opt)
 	}
 
 	if t.OAuth != nil {
@@ -137,7 +139,15 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		if err != nil {
 			return fmt.Errorf("provisioning oauth: %v", err)
 		}
-		t.opts = append(t.opts, t.OAuth.OAuthOption)
+		t.opts = append(t.opts, t.OAuth.opt)
+	}
+
+	if t.WebhookVerification != nil {
+		err := t.WebhookVerification.Provision(ctx)
+		if err != nil {
+			return fmt.Errorf("provisioning webhook_verification: %v", err)
+		}
+		t.opts = append(t.opts, t.WebhookVerification.opt)
 	}
 
 	return nil
@@ -235,6 +245,10 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 			case "oauth":
 				if err := t.unmarshalOAuth(d); err != nil {
+					return err
+				}
+			case "webhook_verification":
+				if err := t.unmarshalWebhookVerification(d); err != nil {
 					return err
 				}
 			default:
@@ -391,6 +405,18 @@ func (t *HTTP) unmarshalOAuth(d *caddyfile.Dispenser) error {
 	}
 
 	t.OAuth = &oauth
+
+	return nil
+}
+
+func (t *HTTP) unmarshalWebhookVerification(d *caddyfile.Dispenser) error {
+	webhookVerification := webhookVerification{}
+	err := webhookVerification.UnmarshalCaddyfile(d)
+	if err != nil {
+		return d.Errf(`parsing webhook_verification %w`, err)
+	}
+
+	t.WebhookVerification = &webhookVerification
 
 	return nil
 }

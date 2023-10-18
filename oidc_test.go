@@ -27,9 +27,9 @@ func TestOIDC(t *testing.T) {
 				require.Equal(t, actual.ClientSecret, "bar")
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oidc) {
-				require.NotNil(t, actual.OIDCOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OIDCOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithOIDC("https://google.com", "foo", "bar")),
 				)
 			},
@@ -56,9 +56,9 @@ func TestOIDC(t *testing.T) {
 				require.ElementsMatch(t, actual.AllowEmails, []string{"user1@gmail.com", "user2@gmail.com", "user3@gmail.com"})
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oidc) {
-				require.NotNil(t, actual.OIDCOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OIDCOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithOIDC(
 						"google",
 						"foo",
@@ -213,9 +213,9 @@ func TestOIDCScopes(t *testing.T) {
 				require.Nil(t, actual.Scopes)
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oidc) {
-				require.NotNil(t, actual.OIDCOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OIDCOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithOIDC(
 						"https://google.com",
 						"foo",
@@ -253,9 +253,9 @@ func TestOIDCAllowDomains(t *testing.T) {
 				require.Nil(t, actual.AllowDomains)
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oidc) {
-				require.NotNil(t, actual.OIDCOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OIDCOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithOIDC(
 						"https://google.com",
 						"foo",
@@ -293,9 +293,9 @@ func TestOIDCAllowEmails(t *testing.T) {
 				require.Nil(t, actual.AllowEmails)
 			},
 			expectedOptsFunc: func(t *testing.T, actual *oidc) {
-				require.NotNil(t, actual.OIDCOption)
+				require.NotNil(t, actual.opt)
 				require.Equal(t,
-					config.HTTPEndpoint(actual.OIDCOption),
+					config.HTTPEndpoint(actual.opt),
 					config.HTTPEndpoint(config.WithOIDC(
 						"https://google.com",
 						"foo",
