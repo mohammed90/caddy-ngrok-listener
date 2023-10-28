@@ -51,6 +51,10 @@ type HTTP struct {
 
 	WebhookVerification *webhookVerification `json:"webhook_verification,omitempty"`
 
+	RequestHeader *httpRequestHeaders `json:"request_header,omitempty"`
+
+	ResponseHeader *httpResponseHeaders `json:"header,omitempty"`
+
 	l *zap.Logger
 }
 
@@ -148,6 +152,22 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 			return fmt.Errorf("provisioning webhook_verification: %v", err)
 		}
 		t.opts = append(t.opts, t.WebhookVerification.opt)
+	}
+
+	if t.RequestHeader != nil {
+		err := t.RequestHeader.Provision(ctx)
+		if err != nil {
+			return fmt.Errorf("provisioning request_header: %v", err)
+		}
+		t.opts = append(t.opts, t.RequestHeader.opts...)
+	}
+
+	if t.ResponseHeader != nil {
+		err := t.ResponseHeader.Provision(ctx)
+		if err != nil {
+			return fmt.Errorf("provisioning header: %v", err)
+		}
+		t.opts = append(t.opts, t.ResponseHeader.opts...)
 	}
 
 	return nil
@@ -249,6 +269,14 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 			case "webhook_verification":
 				if err := t.unmarshalWebhookVerification(d); err != nil {
+					return err
+				}
+			case "request_header":
+				if err := t.unmarshalRequestHeader(d); err != nil {
+					return err
+				}
+			case "header":
+				if err := t.unmarshalResponseHeader(d); err != nil {
 					return err
 				}
 			default:
@@ -417,6 +445,30 @@ func (t *HTTP) unmarshalWebhookVerification(d *caddyfile.Dispenser) error {
 	}
 
 	t.WebhookVerification = &webhookVerification
+
+	return nil
+}
+
+func (t *HTTP) unmarshalRequestHeader(d *caddyfile.Dispenser) error {
+	requestHeader := httpRequestHeaders{}
+	err := requestHeader.UnmarshalCaddyfile(d)
+	if err != nil {
+		return d.Errf(`parsing request_header %w`, err)
+	}
+
+	t.RequestHeader = &requestHeader
+
+	return nil
+}
+
+func (t *HTTP) unmarshalResponseHeader(d *caddyfile.Dispenser) error {
+	responseHeader := httpResponseHeaders{}
+	err := responseHeader.UnmarshalCaddyfile(d)
+	if err != nil {
+		return d.Errf(`parsing header %w`, err)
+	}
+
+	t.ResponseHeader = &responseHeader
 
 	return nil
 }
