@@ -101,7 +101,13 @@ func (n *Ngrok) Provision(ctx caddy.Context) error {
 }
 
 func (n *Ngrok) provisionOpts() error {
-	n.opts = append(n.opts, ngrok.WithLogger(ngrokZap.NewLogger(n.l)))
+	simpleVersion, _ := caddy.Version()
+
+	n.opts = append(
+		n.opts,
+		ngrok.WithLogger(ngrokZap.NewLogger(n.l)),
+		ngrok.WithClientInfo("caddy", simpleVersion),
+	)
 
 	if n.AuthToken == "" {
 		n.opts = append(n.opts, ngrok.WithAuthtokenFromEnv())
