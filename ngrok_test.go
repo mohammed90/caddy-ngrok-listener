@@ -227,6 +227,53 @@ func TestNgrokHeartbeat(t *testing.T) {
 	cases.runAll(t)
 }
 
+func TestNgrokProxyUrl(t *testing.T) {
+	cases := genericNgrokTestCases[*Ngrok]{
+		{
+			name: "empty",
+			caddyInput: `ngrok {
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Empty(t, actual.ProxyURL)
+			},
+		},
+		{
+			name: "set proxy_url",
+			caddyInput: `ngrok {
+				proxy_url http://proxy.url
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.ProxyURL, "http://proxy.url")
+			},
+		},
+		{
+			name: "proxy_url-no-arg",
+			caddyInput: `ngrok {
+				proxy_url
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "proxy_url-too-many-arg",
+			caddyInput: `ngrok {
+				proxy_url http://proxy.url http://proxy2.url
+			}`,
+			expectUnmarshalErr: true,
+		},
+		{
+			name: "proxy_url-non-url",
+			caddyInput: `ngrok {
+				proxy_url 123.456.789.101:1234
+			}`,
+			expectConfig: func(t *testing.T, actual *Ngrok) {
+				require.Equal(t, actual.ProxyURL, "123.456.789.101:1234")
+			},
+			expectProvisionErr: true,
+		},
+	}
+	cases.runAll(t)
+}
+
 func TestNgrokTunnel(t *testing.T) {
 	cases := genericNgrokTestCases[*Ngrok]{
 		{

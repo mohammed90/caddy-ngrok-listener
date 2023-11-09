@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
@@ -63,6 +64,14 @@ type Ngrok struct {
 	//
 	// See the [heartbeat_interval parameter in the ngrok docs] for additional details.
 	HeartbeatInterval caddy.Duration `json:"heartbeat_interval,omitempty"`
+
+	// https://github.com/ngrok/ngrok-go/blob/main/session.go
+	// ProxyURL configures the session to connect to ngrok through an outbound
+	// HTTP or SOCKS5 proxy. This parameter is ignored if you override the dialer
+	// with [WithDialer].
+	//
+	// See the [proxy url parameter in the ngrok docs] for additional details.
+	ProxyURL string `json:"proxy_url,omitempty"`
 
 	tunnel Tunnel
 
@@ -131,6 +140,14 @@ func (n *Ngrok) provisionOpts() error {
 
 	n.opts = append(n.opts, ngrok.WithHeartbeatTolerance(time.Duration(n.HeartbeatTolerance)))
 
+	if n.ProxyURL != "" {
+		url, err := url.Parse(n.ProxyURL)
+		if err != nil {
+			return fmt.Errorf("provisioning proxy_url: %v", err)
+		}
+		n.opts = append(n.opts, ngrok.WithProxyURL(url))
+	}
+
 	return nil
 }
 
@@ -141,6 +158,7 @@ func (n *Ngrok) doReplace() {
 		&n.Metadata,
 		&n.Region,
 		&n.Server,
+		&n.ProxyURL,
 	}
 
 	for _, field := range replaceableFields {
@@ -206,6 +224,10 @@ func (n *Ngrok) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			case "heartbeat_interval":
 				if err := n.unmarshalHeartbeatInterval(d); err != nil {
 					return err
+				}
+			case "proxy_url":
+				if !d.AllArgs(&n.ProxyURL) {
+					return d.ArgErr()
 				}
 			case "tunnel":
 				if err := n.unmarshalTunnel(d); err != nil {
