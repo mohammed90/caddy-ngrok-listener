@@ -1,7 +1,10 @@
 package ngroklistener
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/caddyserver/caddy/v2"
@@ -54,6 +57,9 @@ type HTTP struct {
 	RequestHeader *httpRequestHeaders `json:"request_header,omitempty"`
 
 	ResponseHeader *httpResponseHeaders `json:"header,omitempty"`
+
+	// Paths to the TLS certificate authority to verify client certs in mutual TLS
+	MutualTLSCAs []string `json:"mutual_tls_cas,omitempty"`
 
 	l *zap.Logger
 }
@@ -170,6 +176,23 @@ func (t *HTTP) provisionOpts(ctx caddy.Context) error {
 		t.opts = append(t.opts, t.ResponseHeader.opts...)
 	}
 
+	if t.MutualTLSCAs != nil {
+		for _, path := range t.MutualTLSCAs {
+			bytes, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("provisioning mtls - failed to read file: %v", err)
+			}
+
+			certDer, _ := pem.Decode(bytes)
+			cert, err := x509.ParseCertificate(certDer.Bytes)
+			if err != nil {
+				return fmt.Errorf("provisioning mtls - failed to parse certificate: %v", err)
+			}
+
+			t.opts = append(t.opts, config.WithMutualTLSCA(cert))
+		}
+	}
+
 	return nil
 }
 
@@ -206,6 +229,12 @@ func (t *HTTP) doReplace() {
 
 		t.BasicAuth[i] = basicAuthCred{Username: actualUsername, Password: actualPassword}
 
+	}
+
+	for index, path := range t.MutualTLSCAs {
+		actual := repl.ReplaceKnown(path, "")
+
+		t.MutualTLSCAs[index] = actual
 	}
 }
 
@@ -279,6 +308,12 @@ func (t *HTTP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				if err := t.unmarshalResponseHeader(d); err != nil {
 					return err
 				}
+			case "mutual_tls_cas":
+				if d.CountRemainingArgs() != 1 {
+					return d.ArgErr()
+				}
+
+				t.MutualTLSCAs = append(t.MutualTLSCAs, d.RemainingArgs()...)
 			default:
 				return d.Errf("unrecognized subdirective %s", subdirective)
 			}
